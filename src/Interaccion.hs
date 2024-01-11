@@ -7,10 +7,11 @@ import ElGamal
 import RSA
 import Util
 import UtilIO
+import Tipos
 ---
 import Data.List as L
 import System.Random
-import Tipos
+import System.IO
 
 mainInteraccion :: IO ()
 mainInteraccion = do
@@ -91,16 +92,18 @@ algoritmoRSA = do
     imprime "El mensaje que va a cifrarse es el siguiente:"
     imprime msg
     let preparado = preparaMensaje msg
-    let mensajeCifrado = cifraMensaje clavesPubYPriv (show preparado)
+    imprime "El mensaje preparado es el siguiente: "
+    imprime $ show preparado
+    let mensajeCifrado = cifraMensaje clavesPubYPriv preparado
     imprime "El mensaje se ha cifrado correctamente."
     imprime $ show mensajeCifrado
     imprime "Se va a proceder con el descifrado del mensaje..."
-    let mensajeOriginal = descifraMensaje clavesPubYPriv mensajeCifrado
-    imprime "El mensaje original en formato numérico es el siguiente: "
-    imprime $ show mensajeOriginal
-    let msgOrig = read mensajeOriginal
-    imprime "El mensaje se ha descifrado. Comprueba si este es el mensaje original:"
-    imprime msgOrig
+    -- let mensajeOriginal = descifraMensaje clavesPubYPriv mensajeCifrado
+    -- imprime "El mensaje original en formato numérico es el siguiente: "
+    -- imprime $ show mensajeOriginal
+    -- let msgOrig = read mensajeOriginal
+    -- imprime "El mensaje se ha descifrado. Comprueba si este es el mensaje original:"
+    -- imprime msgOrig
 
 algoritmoIntercambioClaves :: IO ()
 algoritmoIntercambioClaves = do
@@ -130,6 +133,7 @@ algoritmoIntercambioClaves = do
     let comp = compruebaClaveCompartida claveComp claveComp'
     if comp then do
         putStr "La clave compartida es "
+        hFlush stdout
         imprime $ show claveComp
     else do
         imprime "La clave compartida no es válida."

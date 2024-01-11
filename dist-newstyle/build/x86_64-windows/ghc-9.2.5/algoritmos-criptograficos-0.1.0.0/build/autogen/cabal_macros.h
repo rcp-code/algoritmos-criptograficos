@@ -60,6 +60,16 @@
   (major1) == 0 && (major2) <  0 || \
   (major1) == 0 && (major2) == 0 && (minor) <= 1)
 #endif /* MIN_VERSION_inflist */
+/* package integer-logarithms-1.0.3.1 */
+#ifndef VERSION_integer_logarithms
+#define VERSION_integer_logarithms "1.0.3.1"
+#endif /* VERSION_integer_logarithms */
+#ifndef MIN_VERSION_integer_logarithms
+#define MIN_VERSION_integer_logarithms(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  0 || \
+  (major1) == 1 && (major2) == 0 && (minor) <= 3)
+#endif /* MIN_VERSION_integer_logarithms */
 /* package matrix-0.3.6.3 */
 #ifndef VERSION_matrix
 #define VERSION_matrix "0.3.6.3"

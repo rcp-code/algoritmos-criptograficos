@@ -95,8 +95,8 @@ prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
     where 
         exp = c^e
 
-cifraMensaje :: ClavePublicaYPrivada -> Mensaje -> Mensaje
-cifraMensaje (ClavePublicaYPrivada e n _ _ _) msg = show $ exponenentesMod (toInteger (deStringAInt msg)) e n
+cifraMensaje :: ClavePublicaYPrivada -> [Integer] -> Mensaje
+cifraMensaje (ClavePublicaYPrivada e n _ _ _) msg = show $ exponenentesMod (transformaEnEntero msg) e n
 
 cifraMensaje' :: ClavePublicaYPrivada -> Mensaje -> Mensaje
 cifraMensaje' (ClavePublicaYPrivada e n d _ _) msg
@@ -105,5 +105,5 @@ cifraMensaje' (ClavePublicaYPrivada e n d _ _) msg
     where 
         conteoLetras = sum [1 | a<-msg, isPrint a]
 
-descifraMensaje :: ClavePublicaYPrivada -> Mensaje -> Mensaje
+descifraMensaje :: ClavePublicaYPrivada -> [Integer] -> Mensaje
 descifraMensaje clave@(ClavePublicaYPrivada e n d _ _) = cifraMensaje clave

@@ -15,20 +15,21 @@ import Data.Bits
 import Data.Word
 
 import Tipos
+import Math.NumberTheory.Logarithms
 
     {----------------------------------------------------------------------
-                        Definición de constantes
+                        Definición de "constantes"
     ----------------------------------------------------------------------}
 
-diccionario :: String
-diccionario = ' ' : ['a'..'z'] P.++ ['A'..'Z'] P.++ ['0'..'9'] P.++ ['.',',']
+caracteres :: String
+caracteres = ' ' : ['a'..'z'] P.++ ['A'..'Z'] P.++ ['0'..'9'] P.++ ['.',',']
 
-numeros :: [Integer]
+numeros :: [Int]
 numeros = [0..n]
-    where n = L.genericLength diccionario-1
+    where n = L.genericLength caracteres-1
 
-asociaciones :: [(Char, Integer)]
-asociaciones = L.zip diccionario numeros
+asociaciones :: [(Char, Int)]
+asociaciones = L.zip caracteres numeros
 
     {----------------------------------------------------------------------
                         Transformaciones de datos
@@ -47,15 +48,9 @@ deDigitosAInt ns = deDigitosAInt' (L.reverse ns)
 
 deDigitosAEntero :: [Integer] -> Integer
 deDigitosAEntero ns = deDigitosAEntero (L.reverse ns)
-    where 
+    where
         deDigitosAEntero' [x] = x
         deDigitosAEntero' (x:xs) = x+10*deDigitosAEntero' xs
-
-numeroDigitos :: Int -> Int
-numeroDigitos n = L.length $ digitos n
-
-numeroDigitos' :: Int -> Integer
-numeroDigitos' n = L.genericLength $ digitos n
 
 cambioABase2 :: (Integral a, Num a) => a -> [a]
 cambioABase2 num = cambioABase2' num []
@@ -127,7 +122,7 @@ deStringAInt c@(s:ss)
     | otherwise = (digitToInt s * 10 ^ (L.length c - 1)) + deStringAInt ss
 
     {----------------------------------------------------------------------
-                            Obtención de datos
+                        Tratamiento de datos
     ----------------------------------------------------------------------}
 
 --Obtiene el primer elemento de una tupla de tres elementos
@@ -154,20 +149,43 @@ segundoElemento (Tripleta 3 (_, s, _)) = s
 tercerElemento :: Tripleta a -> a
 tercerElemento (Tripleta 3 (_, _, t)) = t
 
+numeroDigitos :: Int -> Int
+numeroDigitos n = L.length $ digitos n
+
+numeroDigitos' :: Int -> Integer
+numeroDigitos' n = L.genericLength $ digitos n
+
 obtieneIndiceLista :: (Eq a) => [a] -> a -> Int
-obtieneIndiceLista [] _ = error "No se ha podido obtener el índice porque la lista está vacía."
 obtieneIndiceLista ls elemento
-    | L.notElem elemento ls = error "No se ha podido obtener el índice porque el elemento no se encuentra en la lista."
+    | elemento `L.notElem` ls = error "No se ha podido obtener el indice porque el elemento no se encuentra en la lista."
     | otherwise = indiceLista 0 ls elemento
     where
         indiceLista ind [] e = -1
         indiceLista ind (l:ls) e
-            | e==l = ind 
-            | otherwise = indiceLista (ind+1) ls e
+            | e==l = ind
+            | ind<L.genericLength ls = indiceLista (ind+1) (L.drop 1 ls) e
+            | otherwise = indiceLista ind ls e
 
 --Obtiene el tamaño de una lista
 tamLista :: Num a => [a] -> Int
 tamLista = L.length
+
+eliminaCaracterEspecial :: Mensaje -> Mensaje
+eliminaCaracterEspecial = L.filter (/='\n')
+
+-- Obtiene el número de bits de un entero
+numeroBits :: Integer -> Int
+numeroBits numero
+    | numero>0 = succ $ integerLog2 numero
+    | otherwise = error "El número es menor que 0."
+
+-- Comprueba si un caracter está dentro de caracteres
+estaEnCaracteres :: Char -> String -> Bool
+estaEnCaracteres caracter cs = caracter `L.elem` cs
+
+-- Obtiene el índice de un elemento de caracteres
+obtieneIndice :: Char -> Int
+obtieneIndice caracter = L.head [i | (c,i)<-asociaciones, c==caracter]
 
     {----------------------------------------------------------------------
                     Aritmética modular y números primos
@@ -254,7 +272,7 @@ euclidesExtendido a b
 --Inverso de un número módulo n
 inverso :: Integer -> Integer -> Integer
 inverso a n
-    | d /= 1  = error "El número no tiene inverso módulo n."
+    | d /= 1  = error "El numero no tiene inverso modulo n."
     | otherwise = mod x n
     where
         tripleta = euclidesExtendido a n
@@ -288,7 +306,7 @@ factorizacionFermat' num aux
         raiz = sqrt (fromIntegral y2)
 
     {----------------------------------------------------------------------
-                    Funciones necesarias para los mensajes
+                    Funciones auxiliares para los mensajes
     ----------------------------------------------------------------------}
 
 -- Elimina los espacios de una cadena
@@ -320,27 +338,36 @@ preparaMensaje ms = preparaMensaje' ms []
     where
         preparaMensaje' "" auxs = auxs
         preparaMensaje' (c:ms) auxs
-            | L.notElem c diccionario = error "Caracter inválido en el mensaje."
+            | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
             | otherwise = preparaMensaje' (L.drop 1 ms) (listaTransf P.++ auxs)
-            where 
-                indice = obtieneIndiceLista ms c 
+            where
+                indice = obtieneIndice c
                 elemento = asociaciones !! indice
                 numero = snd elemento
-                listaTransf = introduceEnLista (fromInteger numero)
+                listaTransf = introduceEnLista numero
 
 -- Función auxiliar creada para preparaMensaje (en principio)
 introduceEnLista :: Int -> [Integer]
 introduceEnLista n
     | numeroDigitos n<2 = 0:[toInteger n]
-    | otherwise = [toInteger n]
+    | otherwise = [toInteger (deStringAInt s) | s<-ns]
+    where
+        numero = toInteger n
+        ns = parte 1 (show numero)
 
-convierteEnNumero :: [[Integer]] -> Integer
-convierteEnNumero [] = error "No se puede convertir a entero porque la lista está vacía."
-convierteEnNumero lss = deDigitosAEntero (L.concat lss)
+transformaEnEntero :: [Integer] -> Integer
+transformaEnEntero [] = error "No se puede convertir a entero porque la lista esta vacia."
+transformaEnEntero ls = deDigitosAEntero ls
 
 -- Obtiene el mensaje a partir de una representación como número entero
+-- deRepresentacion :: Integer -> Mensaje
+-- deRepresentacion num = L.map (chr . read) (parte 2 $ show num)
+
 deRepresentacion :: Integer -> Mensaje
-deRepresentacion num = L.map (chr . read) (parte 3 $ show num)
+deRepresentacion num = undefined
+    where
+        particiones = parte 3 (show num)
+
 
     {----------------------------------------------------------------------
                                 Otras funciones
