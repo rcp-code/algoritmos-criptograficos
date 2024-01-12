@@ -333,20 +333,23 @@ parte n xs = L.take n xs:parte n (L.drop n xs)
 -- preparaMensaje' m = read $ L.concatMap (show . ord) m
 
 preparaMensaje :: Mensaje -> [Integer]
-preparaMensaje [] = []
+preparaMensaje "" = []
 preparaMensaje ms = preparaMensaje' ms []
     where
+        preparaMensaje' :: Mensaje -> [Integer] -> [Integer]
         preparaMensaje' "" auxs = auxs
         preparaMensaje' (c:ms) auxs
             | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
-            | otherwise = preparaMensaje' (L.drop 1 ms) (listaTransf P.++ auxs)
+            | otherwise = preparaMensaje' ms (auxs P.++ listaTransf) -- ¡se salta 1 cada vez que se ejecuta!
             where
                 indice = obtieneIndice c
                 elemento = asociaciones !! indice
-                numero = snd elemento
+                numero = snd elemento       -- 
                 listaTransf = introduceEnLista numero
 
--- Función auxiliar creada para preparaMensaje (en principio)
+-- Función auxiliar que transforma un número en una lista con sus dígitos de forma que:
+--      · Si el número tiene menos de 2 cifras, le agrega un 0 a la izquierda.
+--      · En caso contrario, parte el número en 2 dígitos (en principio, y por ahora, no habrá números con más de dos dígitos)
 introduceEnLista :: Int -> [Integer]
 introduceEnLista n
     | numeroDigitos n<2 = 0:[toInteger n]
