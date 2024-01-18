@@ -6,12 +6,6 @@ module UtilIO where
                       unificados en un mismo lugar.
     ----------------------------------------------------------------------}
 
-import Data.Vector as V
-import Prelude as P
-import Data.Char
-import Data.List as L
-import System.Random
-import Control.Monad as M
 import Data.Functor
 import Data.Time.Clock
 

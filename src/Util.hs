@@ -40,52 +40,21 @@ digitos :: Int -> [Int]
 digitos n = [read [x] :: Int | x<-show n]
 
 --Transforma una lista de dígitos en el número que corresponde
-deDigitosAInt :: [Int] -> Int
-deDigitosAInt ns = deDigitosAInt' (L.reverse ns)
+deDigitosANum :: (Integral a, Num a) => [a] -> a
+deDigitosANum ns = deDigitosANum' (L.reverse ns)
     where
-        deDigitosAInt' [x] = x
-        deDigitosAInt' (x:xs) = x+10*deDigitosAInt' xs
-
-deDigitosAEntero :: [Integer] -> Integer
-deDigitosAEntero ns = deDigitosAEntero (L.reverse ns)
-    where
-        deDigitosAEntero' [x] = x
-        deDigitosAEntero' (x:xs) = x+10*deDigitosAEntero' xs
+        deDigitosANum' [x] = x
+        deDigitosANum' (x:xs) = x+10*deDigitosANum' xs
 
 cambioABase2 :: (Integral a, Num a) => a -> [a]
 cambioABase2 num = cambioABase2' num []
     where
         cambioABase2' num listaRestos
-            | num < 2 = listaAux
-            | otherwise = cambioABase2' cociente restos
-            where
-                cociente = div num 2
-                resto = mod num 2
-                restos = resto:listaRestos              --se añade el resto a la lista de los restos ya calculados
-                listaAux = L.reverse (1:listaRestos)    --se da la vuelta a la lista de restos y se añade un 1 al comienzo al llegar a 1
+            | num < 2 = L.reverse (1:listaRestos)                               --se da la vuelta a la lista de restos y se añade un 1 al comienzo al llegar a 1
+            | otherwise = cambioABase2' (div num 2) (mod num 2:listaRestos)   --se añade el resto a la lista de los restos ya calculados  
 
 cambioABase2Lista :: (Integral a, Num a) => [a] -> [[a]]
 cambioABase2Lista ns = [cambioABase2 x | x<-ns]
-
-cambiaListaIntABase2 :: [Int] -> [[Int]]
-cambiaListaIntABase2 ns = [cambiaIntABase2 x | x<-ns]
-    where
-        cambiaIntABase2 num = cambiaIntABase2' num []
-        cambiaIntABase2' num lrs
-            | num < 2 = listaAux
-            | otherwise = cambiaIntABase2' cociente restos
-            where
-                cociente = num `div` 2
-                resto = num `mod` 2
-                restos = resto:lrs
-                listaAux = L.reverse (1:lrs)
-
-deListaBinarioAInt :: [Int] -> Int
-deListaBinarioAInt ns = abs $ L.sum [(2^p)*fromIntegral x | (x,p)<-union]
-    where
-        tam = L.length ns
-        ps = [0..tam-1]
-        union = L.zip ns (L.reverse ps)
 
 deListaBinarioANum :: Num a => [a] -> a
 deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
@@ -94,26 +63,11 @@ deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
         ps = [0..tam-1]
         union = L.zip ns (L.reverse ps)
 
---Transforma una lista (1 y 0) en un entero (generalizado)
-transformaBits :: (Integral a, Num a) => [a] -> a
-transformaBits = P.foldl ((+) . (2 *)) 0
-
---Transforma una lista (1 y 0) en un entero
-transformaBits' :: [Int] -> Int
-transformaBits' = P.foldl ((+) . (2 *)) 0
-
 deListaAVector :: [a] -> Vector a
 deListaAVector = V.fromList
 
 deVectorALista :: Vector a -> [a]
 deVectorALista = V.toList
-
-deCharAInt :: Char -> Int
-deCharAInt c
-    | isLower c = ord c - ord 'a'
-    | isUpper c = ord c - ord 'A'
-    | isDigit c = ord c - ord '0'
-    | otherwise = ord ' '
 
 deStringAInt :: String -> Int
 deStringAInt [] = 0
@@ -149,26 +103,36 @@ segundoElemento (Tripleta 3 (_, s, _)) = s
 tercerElemento :: Tripleta a -> a
 tercerElemento (Tripleta 3 (_, _, t)) = t
 
+-- Obtiene el primer elemento de una lista
+cabeza :: [a] -> a
+cabeza = L.head
+
+ultimo :: [a] -> a
+ultimo = L.last
+
+vacia :: [a] -> Bool
+vacia = L.null
+
+obtieneElemento :: [a] -> Int -> a
+obtieneElemento lista i = lista !! i
+
 numeroDigitos :: Int -> Int
-numeroDigitos n = L.length $ digitos n
+numeroDigitos n = tamLista $ digitos n
 
 numeroDigitos' :: Int -> Integer
-numeroDigitos' n = L.genericLength $ digitos n
+numeroDigitos' n = tamListaGen $ digitos n
 
-obtieneIndiceLista :: (Eq a) => [a] -> a -> Int
-obtieneIndiceLista ls elemento
-    | elemento `L.notElem` ls = error "No se ha podido obtener el indice porque el elemento no se encuentra en la lista."
-    | otherwise = indiceLista 0 ls elemento
-    where
-        indiceLista ind [] e = -1
-        indiceLista ind (l:ls) e
-            | e==l = ind
-            | ind<L.genericLength ls = indiceLista (ind+1) (L.drop 1 ls) e
-            | otherwise = indiceLista ind ls e
+esPrimerElementoCero :: (Eq a, Num a) => [a] -> Bool
+esPrimerElementoCero ls
+    | cabeza ls==0 = True
+    | otherwise = False
 
 --Obtiene el tamaño de una lista
 tamLista :: Num a => [a] -> Int
 tamLista = L.length
+
+tamListaGen :: Num a => [a] -> Integer
+tamListaGen = L.genericLength
 
 eliminaCaracterEspecial :: Mensaje -> Mensaje
 eliminaCaracterEspecial = L.filter (/='\n')
@@ -185,47 +149,36 @@ estaEnCaracteres caracter cs = caracter `L.elem` cs
 
 -- Obtiene el índice de un elemento de caracteres
 obtieneIndice :: Char -> Int
-obtieneIndice caracter = L.head [i | (c,i)<-asociaciones, c==caracter]
+obtieneIndice caracter = cabeza [i | (c,i)<-asociaciones, c==caracter]
 
     {----------------------------------------------------------------------
                     Aritmética modular y números primos
     ----------------------------------------------------------------------}
 
 --Se obtiene el grupo multiplicativo del número p
-obtieneGrupoMultiplicativo :: Integer -> [Integer]
+obtieneGrupoMultiplicativo :: (Integral a, Num a) => a -> [a]
 obtieneGrupoMultiplicativo p = P.filter (\x -> gcd x p == 1) [1..p-1]
 
-factores :: Integer -> [Integer]
+factores :: (Integral a, Num a) => a -> [a]
 factores n
     | n<=1 = []
     | otherwise = factoriza n 2
     where
-        factoriza :: Integer -> Integer -> [Integer]
         factoriza 1 _ = []
         factoriza m c
             | mod m c==0 = c:factoriza (div m c) c
             | otherwise = factoriza m (c+1)
 
 -- Obtiene los factores primos de un número p
-factoresPrimos :: Integer -> [Integer]
+factoresPrimos :: (Integral a, Num a) => a -> [a]
 factoresPrimos p = filtraPrimos [2..p]
     where
         filtraPrimos [] = []
         filtraPrimos (p:ps) = p : filtraPrimos [x | x <- ps, x `mod` p /= 0]
 
 -- Comprueba si un número es primo
-esPrimo :: Integer -> Bool
+esPrimo :: (Integral a, Num a) => a -> Bool
 esPrimo n
-    | n<=1 = False
-    | n==2 || n==3 = True
-    | even n || mod n 3==0 = False
-    | otherwise = not $ L.any (\x -> mod n x == 0) [5, 11..raiz n]
-    where
-        raiz = floor . sqrt . fromIntegral
-
---Función generalizada que comprueba si un número es primo
-esPrimo' :: (Integral a, Num a) => a -> Bool
-esPrimo' n
     | n <= 1 = False
     | n == 2 || n == 3 = True
     | even n || mod n 3==0 = False
@@ -234,27 +187,39 @@ esPrimo' n
         raiz = floor . sqrt . fromIntegral
 
 -- Comprueba si dos números son coprimos
-sonCoprimos :: Integer -> Integer -> Bool
+sonCoprimos :: (Integral a, Num a) => a -> a -> Bool
 sonCoprimos x n = gcd x n == 1
 
 -- Calcula un primo seguro
-primoSeguro :: Integer -> Integer
+primoSeguro :: (Integral a, Num a) => a -> a
 primoSeguro p = 2*p+1
 
 -- Comprueba si un número es compuesto
-esCompuesto :: Integer -> Bool
+esCompuesto :: (Integral a, Num a) => a -> Bool
 esCompuesto n = L.any (\x -> mod n x == 0) [2..mitad]
     where
         mitad = div n 2
 
+-- Obtiene el primo más cercano (por debajo), en caso de que el número introducido no sea primo
+obtienePrimoCercanoInf :: (Integral a, Num a) => a -> a
+obtienePrimoCercanoInf num
+  | esPrimo num = num
+  | otherwise = obtienePrimoCercanoInf (num-1)
+
+-- Obtiene el primo más cercano (por encima), en caso de que el número introducido no sea primo
+obtienePrimoCercanoSup :: (Integral a, Num a) => a -> a
+obtienePrimoCercanoSup num
+  | esPrimo num = num
+  | otherwise = obtienePrimoCercanoSup (num+1)
+
 -- Algoritmo de euclides
-euclides :: Integer -> Integer -> Integer
+euclides :: (Integral a, Num a) => a -> a -> a
 euclides a b
     | b == 0 = a
     | otherwise = euclides b (mod a b)
 
 --Algoritmo extendido de Euclides
-euclidesExtendido :: Integer -> Integer -> Tripleta Integer
+euclidesExtendido :: (Integral a, Num a) => a -> a -> Tripleta a
 euclidesExtendido a b
   | b == 0 = Tripleta 3 (a, 1, 0)
   | otherwise = Tripleta 3 (d, x, y - div a b * x)
@@ -262,15 +227,7 @@ euclidesExtendido a b
     Tripleta 3 (d, x, y) = euclidesExtendido b (mod a b)
 
 --Inverso de un número módulo n
--- inverso :: Integer -> Integer -> Integer
--- inverso a n
---     | d /= 1  = error "El número no tiene inverso módulo n."
---     | otherwise = mod x n
---     where
---         (d, x) = (fst' (euclidesExtendido a n), snd' (euclidesExtendido a n))
-
---Inverso de un número módulo n
-inverso :: Integer -> Integer -> Integer
+inverso :: (Integral a, Num a) => a -> a -> a
 inverso a n
     | d /= 1  = error "El numero no tiene inverso modulo n."
     | otherwise = mod x n
@@ -279,15 +236,15 @@ inverso a n
         (d, x) = (primerElemento tripleta, segundoElemento tripleta)
 
 -- Función de euler
-funcionEuler :: Integer -> Integer
+funcionEuler :: (Integral a, Num a) => a -> a
 funcionEuler n = L.sum [1 | p<-[1..n], sonCoprimos n p]
 
 -- Comprueba si se cumple el teorema de Euler
-teoremaEuler :: Integer -> Integer -> Bool
+teoremaEuler :: (Integral a, Num a) => a -> a -> Bool
 teoremaEuler x p = x^(p-1) == mod 1 p
 
 -- Factorización de Fermat
-factorizacionFermat :: Integer -> Integer
+factorizacionFermat :: (Integral a, Num a) => a -> a
 factorizacionFermat n = factorizacionFermat' x y2
     where
         raiz = sqrt (fromIntegral n)
@@ -296,7 +253,7 @@ factorizacionFermat n = factorizacionFermat' x y2
         y2 = cuad-n
 
 -- Función recursiva auxiliar
-factorizacionFermat' :: Integer -> Integer -> Integer
+factorizacionFermat' :: (Integral a, Num a) => a -> a -> a
 factorizacionFermat' num aux
     | aux/=fromIntegral aux = factorizacionFermat' x' y2
     | otherwise = x' - round raiz
@@ -309,84 +266,35 @@ factorizacionFermat' num aux
                     Funciones auxiliares para los mensajes
     ----------------------------------------------------------------------}
 
--- Elimina los espacios de una cadena
-eliminaEspacios :: String -> String
-eliminaEspacios xs = [x | x<-xs, x/=' ']
-
-trasponer :: Int -> [a] -> [a]
-trasponer n [] = []
-trasponer 0 xs = xs
-trasponer n xs = trasponer (n-1) ys
-    where ys = P.tail xs P.++ [P.head xs]
-
 -- Parte en n trozos
 parte :: Int -> [a] -> [[a]]
 parte _ [] = []
 parte n xs = L.take n xs:parte n (L.drop n xs)
 
--- Prepara un mensaje y lo transforma en una lista de enteros
--- preparaMensaje :: Mensaje -> [Integer]
--- preparaMensaje m = read $ L.concatMap (show . ord) m
-
--- Prepara un mensaje y lo transforma en un entero
--- preparaMensaje' :: Mensaje -> Integer
--- preparaMensaje' m = read $ L.concatMap (show . ord) m
-
-preparaMensaje :: Mensaje -> [Integer]
-preparaMensaje "" = []
-preparaMensaje ms = preparaMensaje' ms []
+deStringAInteger :: String -> Integer
+deStringAInteger = read . L.concatMap aux
     where
-        preparaMensaje' :: Mensaje -> [Integer] -> [Integer]
-        preparaMensaje' "" auxs = auxs
-        preparaMensaje' (c:ms) auxs
-            | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
-            | otherwise = preparaMensaje' ms (auxs P.++ listaTransf) -- ¡se salta 1 cada vez que se ejecuta!
-            where
-                indice = obtieneIndice c
-                elemento = asociaciones !! indice
-                numero = snd elemento       -- 
-                listaTransf = introduceEnLista numero
+        aux c | c<'\n' = "00" P.++ show (ord c)
+              | c<'d' = '0':show (ord c)
+              | otherwise = show (ord c)
 
--- Función auxiliar que transforma un número en una lista con sus dígitos de forma que:
---      · Si el número tiene menos de 2 cifras, le agrega un 0 a la izquierda.
---      · En caso contrario, parte el número en 2 dígitos (en principio, y por ahora, no habrá números con más de dos dígitos)
-introduceEnLista :: Int -> [Integer]
-introduceEnLista n
-    | numeroDigitos n<2 = 0:[toInteger n]
-    | otherwise = [toInteger (deStringAInt s) | s<-ns]
+deIntegerAString :: Integer -> String
+deIntegerAString m
+    | x==0 = aux s
+    | x==1 = chr (read (L.take 1 s)):aux (L.drop 1 s)
+    | x==2 = chr (read (L.take 2 s)):aux (L.drop 2 s)
     where
-        numero = toInteger n
-        ns = parte 1 (show numero)
-
-transformaEnEntero :: [Integer] -> Integer
-transformaEnEntero [] = error "No se puede convertir a entero porque la lista esta vacia."
-transformaEnEntero ls = deDigitosAEntero ls
-
--- Obtiene el mensaje a partir de una representación como número entero
--- deRepresentacion :: Integer -> Mensaje
--- deRepresentacion num = L.map (chr . read) (parte 2 $ show num)
-
-deRepresentacion :: Integer -> Mensaje
-deRepresentacion num = undefined
-    where
-        particiones = parte 3 (show num)
-
+        s = show m
+        x = rem (L.length s) 3
+        aux n = L.map (chr . read) (parte 3 n)
 
     {----------------------------------------------------------------------
                                 Otras funciones
     ----------------------------------------------------------------------}
 
 -- Introduce dos números primos en una tupla
-introducePrimosEnTupla :: (Integral a, Num a) => a -> a -> Tupla a
-introducePrimosEnTupla p q = Tupla 2 (p,q)
-
--- Introduce dos números en una tupla
-introduceEnTupla :: Integer -> Integer -> Tupla Integer
+introduceEnTupla :: (Integral a, Num a) => a -> a -> Tupla a
 introduceEnTupla p q = Tupla 2 (p,q)
-
---Introduce dos números en una tupla (generalizado)
-introduceEnTupla' :: (Integral a, Num a) => a -> a -> Tupla a
-introduceEnTupla' p q = Tupla 2 (p,q)
 
 construyeClave :: Integer -> Integer -> Clave
 construyeClave p q = (p,q)

@@ -55,7 +55,7 @@ library
     exposed-modules: Interaccion
 
     -- Modules included in this library but not exported.
-    other-modules: AC, RSA, IntercambioClaves, ElGamal, Criptoanalisis, Tipos, Util, UtilIO
+    other-modules: AC, RSA, Criptoanalisis, Tipos, Util, UtilIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

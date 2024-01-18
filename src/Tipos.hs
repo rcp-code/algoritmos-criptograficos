@@ -20,11 +20,11 @@ data Tupla a = Tupla Int (a, a) deriving (Show, Eq)
 
 data Tripleta a = Tripleta Int (a, a, a) deriving (Show, Eq)
 
-data ClavePublicaYPrivada = ClavePublicaYPrivada {e :: Integer
+data ClavePublicaYPrivadaRSA = ClavePublicaYPrivadaRSA {e :: Integer
                                                 , n :: Integer
                                                 , d :: Integer
-                                                , publica :: Clave
-                                                , privada :: Clave
+                                                , parPublico :: Clave
+                                                , parPrivado :: Clave
                                                 } deriving (Eq, Show)
 
 type Clave = (Integer, Integer)

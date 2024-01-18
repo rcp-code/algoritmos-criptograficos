@@ -13,6 +13,7 @@ import Test.QuickCheck.Property
 import System.IO.Unsafe (unsafePerformIO)
 import Test.QuickCheck
 import Data.Char
+import UtilIO
 
 
 
@@ -24,20 +25,19 @@ calculoPhi p q = abs (p-1)*(q-1)
                                 Clave pública
     -------------------------------------------------------------------------}
 
-    {- Primero: dos números primos lo suficientemente grandes (p y q).
-       Segundo: calcular la primera parte de la clave pública: n=p*q.
-       Tercero: calcular la segunda parte, el exponente e, que debe ser entero y primo con n.-}
-
 calculoN :: Tupla Integer -> Integer
 calculoN (Tupla 2 (p, q)) = abs (p*q)
 
-compruebaE :: Integer -> Integer -> Bool
-compruebaE e phi_n = gcd e phi_n == 1
+claveNE :: Tupla Integer -> Integer -> Int -> Clave
+claveNE pq@(Tupla 2 (p, q)) e semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
+    where
+        phi = calculoPhi p q
+        n = calculoN pq
 
-clavePublica :: Integer -> Integer -> Clave
-clavePublica e phi_n
-    | compruebaE e phi_n = construyeClave e phi_n 
-    | otherwise = error "El exponente de la clave pública no es válido."
+-- clavePublica :: Integer -> Integer -> Clave
+-- clavePublica e phi_n
+--     | compruebaE e phi_n = construyeClave e phi_n
+--     | otherwise = error "El exponente de la clave publica no es valido."
 
 -- Otra versión: extraído (este y el siguiente) de "Criptografía desde el punto de vista de la programación funcional"
 calculoE :: Integer -> Integer
@@ -54,26 +54,29 @@ calculoE' phiN = suchThat (choose (1,phiN)) (sonCoprimos phiN)  --se genera un v
 -- compruebaClavePrivada :: Integer -> Integer -> Integer -> Bool
 -- compruebaClavePrivada d e phi_n = d*e == mod 1 phi_n
 
-compruebaClavePrivada :: ClavePublicaYPrivada -> Integer -> Bool
-compruebaClavePrivada (ClavePublicaYPrivada e _ d _ _) phi_n = d*e == mod 1 phi_n
+compruebaClavePrivada :: ClavePublicaYPrivadaRSA -> Integer -> Bool
+compruebaClavePrivada (ClavePublicaYPrivadaRSA e _ d _ _) phi_n = d*e == mod 1 phi_n
 
     {-------------------------------------------------------------------------
                             Clave pública y privada
     -------------------------------------------------------------------------}
 
--- Otra versión (unión claves pública y privada): extraídos (este y el siguiente) de "Criptografía desde el punto de vista de la programación funcional",
--- pero con modificaciones personales
-clavesPublicaYPrivadaIO :: Integer -> Integer -> IO ClavePublicaYPrivada
-clavesPublicaYPrivadaIO n phiN = do
-    let e = unsafePerformIO (generate (calculoE' phiN))
-    let d = inverso e phiN 
-    let clavePub = clavePublica n e
+-- Funciones creadas gracias a "Criptografía desde el punto de vista de la programación funcional" (con modificaciones personales)
+clavesPublicaYPrivadaIO :: Tupla Integer -> IO ClavePublicaYPrivadaRSA
+clavesPublicaYPrivadaIO pq@(Tupla 2 (p, q)) = do
+    semilla <- now
+    let e = unsafePerformIO (generate (calculoE' phi))
+    let d = exponenentesMod e (phi-1) phi
+    let clavePub = claveNE pq e semilla
     let clavePriv = construyeClave n d
-    let cpp = ClavePublicaYPrivada {e=e, n=n, d=d, publica=clavePub, privada=clavePriv}
+    let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=clavePub, parPrivado=clavePriv}
     return cpp
+    where 
+        n = calculoN pq 
+        phi = calculoPhi p q
 
-clavesPublicaYPrivada :: Integer -> Integer -> ClavePublicaYPrivada
-clavesPublicaYPrivada n phiN = unsafePerformIO (clavesPublicaYPrivadaIO n phiN)
+clavesPublicaYPrivada :: Tupla Integer -> ClavePublicaYPrivadaRSA
+clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
 
     {-------------------------------------------------------------------------
                             Cifrado y descifrado
@@ -92,18 +95,23 @@ exponenentesMod c e n
 
 prop_ExpMod :: Integer -> Integer -> Integer -> Property
 prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
-    where 
+    where
         exp = c^e
 
-cifraMensaje :: ClavePublicaYPrivada -> [Integer] -> Mensaje
-cifraMensaje (ClavePublicaYPrivada e n _ _ _) msg = show $ exponenentesMod (transformaEnEntero msg) e n
+cifraMensaje :: String -> Clave -> String 
+cifraMensaje m (n, e) = deIntegerAString (exponenentesMod (deStringAInteger m) e n)
 
-cifraMensaje' :: ClavePublicaYPrivada -> Mensaje -> Mensaje
-cifraMensaje' (ClavePublicaYPrivada e n d _ _) msg
-    | conteoLetras==length msg = show $ exponenentesMod (toInteger (deStringAInt msg)) e n
-    | otherwise = show $ exponenentesMod (toInteger (deStringAInt msg)) d n
-    where 
-        conteoLetras = sum [1 | a<-msg, isPrint a]
+descifraMensaje :: String -> Clave -> String 
+descifraMensaje = cifraMensaje
 
-descifraMensaje :: ClavePublicaYPrivada -> [Integer] -> Mensaje
-descifraMensaje clave@(ClavePublicaYPrivada e n d _ _) = cifraMensaje clave
+-- cifraMensaje :: ClavePublicaYPrivadaRSA -> Mensaje -> (Integer, Bool)
+-- cifraMensaje (ClavePublicaYPrivadaRSA e n _ _ _) msg = (cifrado, control)
+--     where
+--         preparado = preparaMensaje msg
+--         control = esPrimerElementoCero preparado
+--         cifrado = exponenentesMod (toInteger $ deDigitosANum preparado) e n
+
+-- descifraMensaje :: ClavePublicaYPrivadaRSA -> (Integer, Bool) -> Mensaje
+-- descifraMensaje clave@(ClavePublicaYPrivadaRSA e n d _ _) (cif,con) = deRepresentacion (fromInteger descifrado) con
+--     where
+--         descifrado = exponenentesMod cif e n
