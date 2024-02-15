@@ -55,7 +55,7 @@ library
     exposed-modules: Interaccion
 
     -- Modules included in this library but not exported.
-    other-modules: AC, RSA, Criptoanalisis, Tipos, Util, UtilIO
+    other-modules: AutomataCelular1D, AutomataCelularSO, Constantes, RSA, Criptoanalisis, Tipos, UtilGeneral, UtilCripto, UtilIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -99,28 +99,28 @@ executable algoritmos-criptograficos
     -- Base language which the package is written in.
     default-language: Haskell2010
 
--- test-suite algoritmos-criptograficos-test
---     -- Base language which the package is written in.
---     default-language: Haskell2010
+test-suite algoritmos-criptograficos-test
+    -- Base language which the package is written in.
+    default-language: Haskell2010
 
---     -- Modules included in this executable, other than Main.
---     -- other-modules:
+    -- Modules included in this executable, other than Main.
+    other-modules: LibTest
 
---     -- LANGUAGE extensions used by modules in this package.
---     -- other-extensions:
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
 
---     -- The interface type and version of the test suite.
---     type:             exitcode-stdio-1.0
+    -- The interface type and version of the test suite.
+    type:             exitcode-stdio-1.0
 
---     -- Directories containing source files.
---     hs-source-dirs:   test
+    -- Directories containing source files.
+    hs-source-dirs:   test
 
---     -- The entrypoint to the test suite.
---     main-is:          Test.hs
+    -- The entrypoint to the test suite.
+    main-is:          Pruebas.hs
 
---     -- Test dependencies.
---     build-depends:
---         base ^>=4.16.0.0,
---         QuickCheck ^>=2.14, 
---         HUnit ^>=1.6.2.0,
---         algoritmos-criptograficos
+    -- Test dependencies.
+    build-depends:
+        base ^>=4.16.0.0,
+        QuickCheck ^>=2.14, 
+        HUnit ^>=1.6.2.0,
+        algoritmos-criptograficos

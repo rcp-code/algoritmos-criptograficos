@@ -80,9 +80,9 @@
   (major1) == 0 && (major2) <  3 || \
   (major1) == 0 && (major2) == 3 && (minor) <= 6)
 #endif /* MIN_VERSION_matrix */
-/* package random-1.2.1.1 */
+/* package random-1.2.1.2 */
 #ifndef VERSION_random
-#define VERSION_random "1.2.1.1"
+#define VERSION_random "1.2.1.2"
 #endif /* VERSION_random */
 #ifndef MIN_VERSION_random
 #define MIN_VERSION_random(major1,major2,minor) (\

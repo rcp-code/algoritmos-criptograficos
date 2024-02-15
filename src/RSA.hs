@@ -4,8 +4,9 @@ module RSA where
             Incluye las funciones necesarias para el algoritmo RSA
     ----------------------------------------------------------------------}
 
-import Util
-import AC
+import UtilGeneral
+import UtilCripto
+import AutomataCelular1D
 import Tipos
 
 import Data.List as L
@@ -25,11 +26,11 @@ calculoPhi p q = abs (p-1)*(q-1)
                                 Clave pública
     -------------------------------------------------------------------------}
 
-calculoN :: Tupla Integer -> Integer
-calculoN (Tupla 2 (p, q)) = abs (p*q)
+calculoN :: (Integer, Integer) -> Integer
+calculoN (p, q) = abs (p*q)
 
-claveNE :: Tupla Integer -> Integer -> Int -> Clave
-claveNE pq@(Tupla 2 (p, q)) e semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
+claveNE :: (Integer, Integer) -> Integer -> Int -> Clave
+claveNE pq@(p, q) e semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
     where
         phi = calculoPhi p q
         n = calculoN pq
@@ -62,20 +63,20 @@ compruebaClavePrivada (ClavePublicaYPrivadaRSA e _ d _ _) phi_n = d*e == mod 1 p
     -------------------------------------------------------------------------}
 
 -- Funciones creadas gracias a "Criptografía desde el punto de vista de la programación funcional" (con modificaciones personales)
-clavesPublicaYPrivadaIO :: Tupla Integer -> IO ClavePublicaYPrivadaRSA
-clavesPublicaYPrivadaIO pq@(Tupla 2 (p, q)) = do
+clavesPublicaYPrivadaIO :: (Integer, Integer) -> IO ClavePublicaYPrivadaRSA
+clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
     let e = unsafePerformIO (generate (calculoE' phi))
     let d = exponenentesMod e (phi-1) phi
     let clavePub = claveNE pq e semilla
-    let clavePriv = construyeClave n d
+    let clavePriv = construyeClave d n
     let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=clavePub, parPrivado=clavePriv}
     return cpp
-    where 
-        n = calculoN pq 
+    where
+        n = calculoN pq
         phi = calculoPhi p q
 
-clavesPublicaYPrivada :: Tupla Integer -> ClavePublicaYPrivadaRSA
+clavesPublicaYPrivada :: (Integer, Integer) -> ClavePublicaYPrivadaRSA
 clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
 
     {-------------------------------------------------------------------------
@@ -98,11 +99,24 @@ prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
     where
         exp = c^e
 
-cifraMensaje :: String -> Clave -> String 
-cifraMensaje m (n, e) = deIntegerAString (exponenentesMod (deStringAInteger m) e n)
+cifraMensaje :: Mensaje -> Clave -> (Mensaje, [Int])
+cifraMensaje msg (e,n) = (deNumerosATexto numero, preparado)
+    where
+        preparado = prepararTexto msg
+        mensaje = toInteger $ transformaEnNumero preparado
+        numero = digitos $ fromInteger $ exponenentesMod mensaje e n
 
-descifraMensaje :: String -> Clave -> String 
-descifraMensaje = cifraMensaje
+descifraMensaje :: (Mensaje, [Int]) -> Clave -> Mensaje
+descifraMensaje (msg, control) (e,n) = restaurarTexto control
+
+-- cifraMensaje :: String -> Clave -> (String, Bool) 
+-- cifraMensaje m (n,e) = (deIntegerAString (exponenentesMod (transformaEnNumero preparado) e n), control)
+--     where 
+--         preparado = preparaMensaje m
+--         control = esPrimerElementoCero preparado
+
+-- descifraMensaje :: (String, Bool) -> Clave -> String 
+-- descifraMensaje = cifraMensaje
 
 -- cifraMensaje :: ClavePublicaYPrivadaRSA -> Mensaje -> (Integer, Bool)
 -- cifraMensaje (ClavePublicaYPrivadaRSA e n _ _ _) msg = (cifrado, control)

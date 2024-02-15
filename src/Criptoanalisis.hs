@@ -2,7 +2,8 @@ module Criptoanalisis where
 
 import Test.QuickCheck
 import System.Random
-import Util
+import UtilGeneral
+import UtilCripto
 import Tipos
 
 --Comprueba que las claves son números primos

@@ -1,14 +1,17 @@
 module Interaccion where
 
-import AC
+import AutomataCelular1D
 import RSA
-import Util
+import UtilGeneral
+import UtilCripto
 import UtilIO
 import Tipos
+import Constantes
 ---
 import Data.List as L
 import System.Random
 import System.IO
+import AutomataCelularSO
 
 mainInteraccion :: IO ()
 mainInteraccion = do
@@ -43,17 +46,17 @@ obtienePrimoAleatorio = do
     let lAleatBase2 = concat (cambioABase2Lista listaAleatorios)                --se pasa la lista de aleatorios a base 2 y se aplana
     let inicia = iniciaAC numCeldas lAleatBase2
     let automata = generaAC numCeldas (regla 30) inicia
-    imprime "El tamaño del autómata es: "
-    imprime $ show $ L.genericLength automata
-    imprime "La mitad es: "
-    imprime $ show (div (L.genericLength automata) 2)
+    -- imprime "El tamaño del autómata es: "
+    -- imprime $ show $ L.genericLength automata
+    -- imprime "La mitad es: "
+    -- imprime $ show (div (L.genericLength automata) 2)
     let indices = [1..L.genericLength automata-1]
     let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
-    imprime "La lista de centros es: "
-    imprime $ show listaCentros
+    -- imprime "La lista de centros es: "
+    -- imprime $ show listaCentros
     let num = deListaBinarioANum listaCentros
-    imprime "Número obtenido:"
-    imprime $ show num
+    -- imprime "Número obtenido:"
+    -- imprime $ show num
     let control = esPrimo (toInteger num)
     semillaPrimos <- now
     let opcion = generaAleatorio' semillaPrimos             --obtiene un número aleatorio entre 0 y 1 para elegir de manera aleatoria si se buscará un primo por encima o por debajo del número
@@ -61,7 +64,7 @@ obtienePrimoAleatorio = do
     let p | control = num                                   --si el número ya es primo, no hay que buscarlo
           | opcion == 0 = obtienePrimoCercanoInf num
           | otherwise = obtienePrimoCercanoSup num
-    let mensaje = "El número primo obtenido es: " ++ show p
+    let mensaje = "El número primo generado es: " ++ show p
     imprime mensaje
     return p
 
@@ -82,20 +85,17 @@ algoritmoRSA = do
     imprime $ show clavePub
     putStr "La clave privada es: "
     imprime $ show clavePriv
-    -- imprime "Introduce el mensaje que se va a cifrar:"
-    -- msg <- leeMensaje
-    -- imprime "El mensaje que va a cifrarse es el siguiente:"
-    -- imprime msg
-    -- let preparado = deDigitosAInt (preparaMensaje msg)
-    -- imprime "El mensaje preparado es el siguiente: "
-    -- imprime $ show preparado
-    -- let mensajeCifrado = cifraMensaje clavesPubYPriv msg
-    -- imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
-    -- imprime $ show (fst mensajeCifrado)
-    -- imprime "Se va a proceder con el descifrado del mensaje..."
-    -- let mensajeOriginal = descifraMensaje clavesPubYPriv mensajeCifrado
-    -- imprime "El mensaje se ha descifrado y es el siguiente: "
-    -- imprime mensajeOriginal
+    imprime "Introduce el mensaje que se va a cifrar:"
+    msg <- leeMensaje
+    imprime "El mensaje que va a cifrarse es el siguiente:"
+    imprime msg
+    let mensajeCifrado = cifraMensaje msg clavePub
+    imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
+    imprime $ show mensajeCifrado
+    imprime "Se va a proceder con el descifrado del mensaje..."
+    let mensajeOriginal = descifraMensaje mensajeCifrado clavePub
+    imprime "El mensaje se ha descifrado y es el siguiente: "
+    imprime mensajeOriginal
 
 
 
@@ -119,23 +119,19 @@ obtieneNumAleatorio = do
     imprime $ show num
     return num
 
+
     {----------------------------------------------------------------------
-                                    Pruebas
+                        Pruebas AC de segundo orden
     ----------------------------------------------------------------------}
 
-pruebaAutomata :: IO ()
-pruebaAutomata = do
-    imprime "Selecciona una regla para el autómata celular: "
-    r <- leeMensaje
-    semillaLista <- now
-    semillaCeldas <- now
-    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        
-    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         
-                  | otherwise = numCeldasAlt
-    let m0 = "El total de celdas es: " ++ show numCeldas
-    imprime m0
-    let listaAleatorios = generaAleatoriosL semillaLista
-    let lAleatBase2 = concat (cambioABase2Lista listaAleatorios)
-    let inicia = iniciaAC numCeldas lAleatBase2
-    let automata = generaAC numCeldas (regla (deStringAInt r)) inicia
-    muestraAC numCeldas (regla (deStringAInt r)) inicia
+pruebaAutomataSO :: IO ()
+pruebaAutomataSO = do
+    automata <- generaAutomataAleatorio' 30 numPasos numPasos
+    let vecindades = [(obtieneElemento x (abs (div (tamLista x) 2) - 1), elementoCentral x, obtieneElemento x (abs (div (tamLista x) 2) + 1)) | x<-L.tail automata, x /= [], abs (div (tamLista x) 2) + 1 < tamLista x-1]
+    print vecindades
+    let listaCentros' = [elementoCentral x | x<-L.tail automata, x /= []]
+    let primerElemento = cabeza $ cabeza automata
+    let listaCentros = primerElemento : listaCentros'
+    print listaCentros
+    let numero = deListaBinarioANum listaCentros
+    print numero
