@@ -25,9 +25,23 @@ import Data.Maybe
                             Comprobaciones
     ----------------------------------------------------------------------}
 
+-- Comprueba si la lista está vacía
+esVacia :: [a] -> Bool
+esVacia = L.null
+
 -- Comprueba si un número es entero
 esEntero :: (RealFrac a) => a -> Bool
 esEntero x = snd (properFraction x) == 0
+
+esPrimerElementoCero :: (Eq a, Num a) => [a] -> Bool
+esPrimerElementoCero ls
+    | cabeza ls==0 = True
+    | otherwise = False
+
+compruebaPosicionLista :: Int -> [a] -> Bool
+compruebaPosicionLista pos lista
+    | pos >= 0 && pos < tamLista lista = True
+    | otherwise = False
 
     {----------------------------------------------------------------------
                         Transformaciones de datos
@@ -116,10 +130,6 @@ cabeza = L.head
 ultimo :: [a] -> a
 ultimo = L.last
 
--- Comprueba si la lista está vacía
-esVacia :: [a] -> Bool
-esVacia = L.null
-
 obtieneElemento :: [a] -> Int -> a
 obtieneElemento lista i = lista !! i
 
@@ -133,11 +143,6 @@ elementoCentral :: [Int] -> Int
 elementoCentral lista = lista !! pos
   where 
     pos = abs $ div (tamLista lista) 2
-
-esPrimerElementoCero :: (Eq a, Num a) => [a] -> Bool
-esPrimerElementoCero ls
-    | cabeza ls==0 = True
-    | otherwise = False
 
 --Obtiene el tamaño de una lista
 tamLista :: [a] -> Int
@@ -236,12 +241,20 @@ deNumerosATexto :: [Int] -> Mensaje
 deNumerosATexto = L.concatMap deNumeroACaracter
 
 -- Otra forma de convertir una lista de números a una lista de caracteres
+-- deNumerosATexto' :: [Int] -> [Char]
+-- deNumerosATexto' [] = []
+-- deNumerosATexto' (x:xs) =
+--   let dosDigitos = read (show x L.++ L.take 1 (L.map intToDigit xs)) :: Int
+--   in if dosDigitos <= L.genericLength caracteres - 1 then 
+--         deNumeroACaracter dosDigitos L.++ deNumerosATexto' (L.drop 1 xs)
+--      else deNumeroACaracter x L.++ deNumerosATexto' xs
+
 deNumerosATexto' :: [Int] -> [Char]
 deNumerosATexto' [] = []
 deNumerosATexto' (x:xs) =
-  let dosDigitos = read (show x L.++ L.take 1 (L.map intToDigit xs)) :: Int
-  in if dosDigitos <= L.genericLength caracteres - 1 then 
-        deNumeroACaracter dosDigitos L.++ deNumerosATexto' (L.drop 1 xs)
+  let dosDigitosString = show x L.++ L.take 1 (L.map intToDigit xs)
+  in if tamLista dosDigitosString <= tamLista caracteres - 1 then
+        deNumeroACaracter (read dosDigitosString :: Int) L.++ deNumerosATexto' (L.drop 1 xs)
      else deNumeroACaracter x L.++ deNumerosATexto' xs
 
 {- Esta versión verifica si el número actual y el siguiente pueden formar un número de dos dígitos válido. 
@@ -250,7 +263,7 @@ deNumerosATexto' (x:xs) =
 
 -- Función para restaurar el texto después de descifrar
 restaurarTexto :: [Int] -> Mensaje
-restaurarTexto = deNumerosATexto'
+restaurarTexto = deNumerosATexto
 
 -- preparaMensaje :: Mensaje -> [Integer]
 -- preparaMensaje "" = []
@@ -298,8 +311,6 @@ deIntAString n
         particionesUno = L.map deStringAInt (parte 1 cadena)
         traduccionDos = L.map deNumeroACaracter particionesDos
         traduccionUno = L.map deNumeroACaracter particionesUno
-
-
 
 -- deIntegerAString :: Integer -> String
 -- deIntegerAString m

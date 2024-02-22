@@ -16,7 +16,9 @@ import AutomataCelularSO
 mainInteraccion :: IO ()
 mainInteraccion = do
     imprime "Cargando..."
-    principal
+    --pruebaAutomataSO
+    --pruebaAutomataSOAleatorio
+    obtieneNumAleatorio'
     imprime "Fin de la ejecución."
 
 principal :: IO ()
@@ -91,7 +93,7 @@ algoritmoRSA = do
     imprime msg
     let mensajeCifrado = cifraMensaje msg clavePub
     imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
-    imprime $ show mensajeCifrado
+    imprime $ show (fst mensajeCifrado)
     imprime "Se va a proceder con el descifrado del mensaje..."
     let mensajeOriginal = descifraMensaje mensajeCifrado clavePub
     imprime "El mensaje se ha descifrado y es el siguiente: "
@@ -119,6 +121,26 @@ obtieneNumAleatorio = do
     imprime $ show num
     return num
 
+-- Obtiene un número aleatorio de un AC de segundo orden
+obtieneNumAleatorio' :: IO Int
+obtieneNumAleatorio' = do
+    --Se crea el autómata para generar el número pseudoaleatorio
+    semillaLista <- now
+    semillaCeldas <- now
+    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        
+    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         
+                  | otherwise = numCeldasAlt
+    let listaAleatorios = generaAleatoriosL semillaLista
+    let lAleatBase2 = concat (cambioABase2Lista listaAleatorios)
+    let inicia = inicializa numCeldas 30 lAleatBase2
+    let automata = generaACSO 30 numPasos inicia numCeldas
+    let indices = [1..L.genericLength automata-1]
+    let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
+    let num = deListaBinarioANum listaCentros
+    putStr "Número aleatorio seleccionado: "
+    imprime $ show num
+    return num
+
 
     {----------------------------------------------------------------------
                         Pruebas AC de segundo orden
@@ -126,12 +148,31 @@ obtieneNumAleatorio = do
 
 pruebaAutomataSO :: IO ()
 pruebaAutomataSO = do
-    automata <- generaAutomataAleatorio' 30 numPasos numPasos
-    let vecindades = [(obtieneElemento x (abs (div (tamLista x) 2) - 1), elementoCentral x, obtieneElemento x (abs (div (tamLista x) 2) + 1)) | x<-L.tail automata, x /= [], abs (div (tamLista x) 2) + 1 < tamLista x-1]
-    print vecindades
-    let listaCentros' = [elementoCentral x | x<-L.tail automata, x /= []]
-    let primerElemento = cabeza $ cabeza automata
-    let listaCentros = primerElemento : listaCentros'
-    print listaCentros
-    let numero = deListaBinarioANum listaCentros
-    print numero
+    let n = div minCeldas 2
+    let lista = L.replicate n 0 L.++ [1] L.++ L.replicate n 0
+    let inicia = inicializa minCeldas 30 lista
+    let automata = generaACSO 30 numPasos inicia minCeldas
+    imprime "El autómata generado es el siguiente: "
+    imprime $ show automata
+    muestraACSO numPasos 30 minCeldas inicia
+
+pruebaAutomataSOAleatorio :: IO ()
+pruebaAutomataSOAleatorio = do
+    semillaLista <- now
+    semillaCeldas <- now
+    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas       
+    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         
+                  | otherwise = numCeldasAlt
+    let listaAleatorios = generaAleatoriosL semillaLista
+    let lAleatBase2 = concat (cambioABase2Lista listaAleatorios)   
+    let inicia = inicializa numCeldas 30 lAleatBase2
+    putStr "La configuración inicial es: "
+    imprime $ show inicia
+    let listaReglaAplicada = aplicaReglaSO' 30 (extraePasado inicia) (extraePresente inicia)
+    putStr "Al aplicar una vez la regla 30 a inicia pasa esto: "
+    imprime $ show listaReglaAplicada
+    let automata = generaACSO 30 numPasos inicia numCeldas
+    imprime "El autómata generado es el siguiente: "
+    imprime $ show automata
+    --imprime "Así se vería el autómata: "
+    --muestraACSO numPasos 30 numCeldas inicia

@@ -26,7 +26,7 @@ asociaciones = L.zip caracteres numeros
     ----------------------------------------------------------------------}
 
 minCeldas :: Int
-minCeldas = 1000
+minCeldas = 100
 
 maxCeldas :: Int
 maxCeldas = 5000
@@ -34,10 +34,13 @@ maxCeldas = 5000
 numCeldas :: Int
 numCeldas = 55
 
+numCeldas' :: Int
+numCeldas' = 11
+
 -- Configuración inicial con una sola celda activa
 configuracionInicial :: [Int]
 configuracionInicial = [1]
 
 -- Número de pasos
 numPasos :: Int
-numPasos = 255
+numPasos = 50

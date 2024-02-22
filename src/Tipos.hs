@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-missing-methods #-}
 module Tipos where
 
     {----------------------------------------------------------------------
@@ -8,6 +9,8 @@ module Tipos where
 
 import Data.InfList as Inf
 import Data.Functor
+import Control.Comonad
+import Data.Vector
 
     {----------------------------------------------------------------------
                                 Generales
@@ -28,6 +31,11 @@ type Pos = (Int, Int)
 
 data Cycle a = Cycle Int a a (InfList a) 
                   deriving (Functor, Show)
+
+data CycleSO a = CycleSO {nCeldas :: Int
+                , pasado :: [a]                 -- vecindad en el instante t-1
+                , presente :: [a]               -- vecindad en el instante t
+                } deriving (Show, Functor)  
 
     {----------------------------------------------------------------------
                             Relacionado con RSA

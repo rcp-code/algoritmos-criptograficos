@@ -55,7 +55,7 @@ library
     exposed-modules: Interaccion
 
     -- Modules included in this library but not exported.
-    other-modules: AutomataCelular1D, AutomataCelularSO, Constantes, RSA, Criptoanalisis, Tipos, UtilGeneral, UtilCripto, UtilIO
+    other-modules: AutomataCelular1D, AutomataCelularSO, Constantes, Criptoanalisis, RSA, Tipos, UtilCripto, UtilGeneral, UtilIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

@@ -9,8 +9,7 @@ import AutomataCelularSO
 
 mainPruebas :: IO ()
 mainPruebas = do
-    imprime "Cargando..."
-    pruebaAutomataSO
+    imprime "Está en el entorno de pruebas..."
     imprime "Fin de la ejecución."
 
     {----------------------------------------------------------------------
@@ -33,11 +32,3 @@ mainPruebas = do
 --     let inicia = iniciaAC numCeldas lAleatBase2
 --     let automata = generaAC numCeldas (regla (deStringAInt r)) inicia
 --     muestraAC numCeldas (regla (deStringAInt r)) inicia
-
-pruebaAutomataSO :: IO ()
-pruebaAutomataSO = do
-    semilla <- now
-    let listaAleatoria = inicialAleatorio semilla
-    let numeroAleatorio = deListaBinarioANum $ estadoFinal listaAleatoria
-    imprime "El número aleatorio generado es: "
-    imprime $ show numeroAleatorio
