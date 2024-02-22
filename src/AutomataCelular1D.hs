@@ -89,5 +89,5 @@ muestraAC :: (Eq a, Integral a, Num a) => Int -> (a -> a -> a -> a) -> Cycle a -
 muestraAC n regla ini = P.mapM_ putStrLn $ Inf.take n automata
   where
     automata = fmap muestra . vista <$> ejecutaAC regla ini   -- <$> - sinónimo infijo de fmap, que reemplaza todas las ubicaciones en la entrada por el mismo valor
-    muestra 0 = '_'
+    muestra 0 = ' '
     muestra 1 = '*'

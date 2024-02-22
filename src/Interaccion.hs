@@ -124,7 +124,6 @@ obtieneNumAleatorio = do
 -- Obtiene un número aleatorio de un AC de segundo orden
 obtieneNumAleatorio' :: IO Int
 obtieneNumAleatorio' = do
-    --Se crea el autómata para generar el número pseudoaleatorio
     semillaLista <- now
     semillaCeldas <- now
     let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        
@@ -148,16 +147,19 @@ obtieneNumAleatorio' = do
 
 pruebaAutomataSO :: IO ()
 pruebaAutomataSO = do
+    putStr "Se va a generar un autómata en "
+    putStr $ show numPasos
+    imprime "pasos."
     let n = div minCeldas 2
     let lista = L.replicate n 0 L.++ [1] L.++ L.replicate n 0
     let inicia = inicializa minCeldas 30 lista
-    let automata = generaACSO 30 numPasos inicia minCeldas
-    imprime "El autómata generado es el siguiente: "
-    imprime $ show automata
     muestraACSO numPasos 30 minCeldas inicia
 
 pruebaAutomataSOAleatorio :: IO ()
 pruebaAutomataSOAleatorio = do
+    putStr "Se va a generar un autómata en "
+    putStr $ show numPasos
+    imprime "pasos."
     semillaLista <- now
     semillaCeldas <- now
     let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas       
@@ -169,10 +171,6 @@ pruebaAutomataSOAleatorio = do
     putStr "La configuración inicial es: "
     imprime $ show inicia
     let listaReglaAplicada = aplicaReglaSO' 30 (extraePasado inicia) (extraePresente inicia)
-    putStr "Al aplicar una vez la regla 30 a inicia pasa esto: "
-    imprime $ show listaReglaAplicada
     let automata = generaACSO 30 numPasos inicia numCeldas
-    imprime "El autómata generado es el siguiente: "
-    imprime $ show automata
-    --imprime "Así se vería el autómata: "
-    --muestraACSO numPasos 30 numCeldas inicia
+    imprime "Así se vería el autómata: "
+    muestraACSO numPasos 30 numCeldas inicia
