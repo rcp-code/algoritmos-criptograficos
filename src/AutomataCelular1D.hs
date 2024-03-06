@@ -5,7 +5,6 @@ module AutomataCelular1D where
                       los autómatas celulaautomata.
     ----------------------------------------------------------------------}
 
--- Módulos necesarios para crear las funciones del módulo actual
 import Tipos
 import Constantes
 import UtilGeneral
@@ -20,9 +19,8 @@ import Data.Matrix as M
 
 
     {-------------------------------------------------------------------------
-            Necesario para el tratamiento de los autómatas celulares
+                      Tratamiento de autómatas celulares
     -------------------------------------------------------------------------}
-
 instance Comonad Cycle where
   extract (Cycle _ _ cen _) = cen
   duplicate cel@(Cycle n _ _ _) = deListaACiclo $ Inf.take n $ Inf.iterate cambia cel
@@ -37,15 +35,6 @@ vista (Cycle n _ cen der) = Inf.take n (cen:::der)
 deListaACiclo :: [a] -> Cycle a
 deListaACiclo []  = let a = a in Cycle 0 a a (Inf.repeat a)      
 deListaACiclo lista = let cel:::der = Inf.cycle lista in Cycle (P.length lista) (P.last lista) cel der
-
-esPrimerPaso :: Cycle a -> Bool
-esPrimerPaso ciclo = L.length (vista ciclo) == numCeldas
-
-obtieneElementoCentral :: Cycle a -> a 
-obtieneElementoCentral ciclo = lista !! pos
-  where 
-    lista = vista ciclo
-    pos = div (L.genericLength lista) 2
 
     {-------------------------------------------------------------------------
                       Creación de los autómatas celulares

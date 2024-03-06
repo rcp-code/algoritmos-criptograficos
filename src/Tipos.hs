@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 module Tipos where
 
     {----------------------------------------------------------------------
@@ -23,11 +25,6 @@ type Pos = (Int, Int)
     {----------------------------------------------------------------------
                 Relacionado con Autómatas Celulares elementales
     ----------------------------------------------------------------------}
-
-{- Tipo de dato Cycle: 
-    - Lo primero es tomar un número entero que será el que determine el tamaño del ciclo. 
-    - Después un elemento del ciclo, que será el correspondiente al de la izquierda, 
-        y otro elemento que será el central. Después una lista infinita de elementos a la derecha. -}
 
 data Cycle a = Cycle Int a a (InfList a) 
                   deriving (Functor, Show)

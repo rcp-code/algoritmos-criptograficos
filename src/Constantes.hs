@@ -15,8 +15,7 @@ caracteres :: String
 caracteres = ' ' : ['a'..'z'] P.++ ['A'..'Z'] P.++ ['0'..'9'] P.++ ['.',',']
 
 numeros :: [Int]
-numeros = [0..n]
-    where n = L.genericLength caracteres-1
+numeros = [10..]
 
 asociaciones :: [(Char, Int)]
 asociaciones = L.zip caracteres numeros
@@ -35,4 +34,10 @@ numCeldas :: Int
 numCeldas = 81
 
 numPasos :: Int
-numPasos = 100
+numPasos = 500
+
+reglaAC :: Int
+reglaAC = 30
+
+pasosEvolucion :: Int
+pasosEvolucion = 10

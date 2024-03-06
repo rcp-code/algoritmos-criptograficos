@@ -50,6 +50,16 @@
   (major1) == 5 && (major2) <  0 || \
   (major1) == 5 && (major2) == 0 && (minor) <= 8)
 #endif /* MIN_VERSION_comonad */
+/* package cond-0.5.1 */
+#ifndef VERSION_cond
+#define VERSION_cond "0.5.1"
+#endif /* VERSION_cond */
+#ifndef MIN_VERSION_cond
+#define MIN_VERSION_cond(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  5 || \
+  (major1) == 0 && (major2) == 5 && (minor) <= 1)
+#endif /* MIN_VERSION_cond */
 /* package inflist-0.0.1 */
 #ifndef VERSION_inflist
 #define VERSION_inflist "0.0.1"

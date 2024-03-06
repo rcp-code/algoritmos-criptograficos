@@ -29,8 +29,8 @@ calculoPhi p q = abs (p-1)*(q-1)
 calculoN :: (Integer, Integer) -> Integer
 calculoN (p, q) = abs (p*q)
 
-claveNE :: (Integer, Integer) -> Integer -> Int -> Clave
-claveNE pq@(p, q) e semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
+claveNE :: (Integer, Integer) -> Int -> Clave
+claveNE pq@(p, q) semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
     where
         phi = calculoPhi p q
         n = calculoN pq
@@ -52,11 +52,11 @@ calculoE' phiN = suchThat (choose (1,phiN)) (sonCoprimos phiN)  --se genera un v
                                 Clave privada
     -------------------------------------------------------------------------}
 
--- compruebaClavePrivada :: Integer -> Integer -> Integer -> Bool
--- compruebaClavePrivada d e phi_n = d*e == mod 1 phi_n
-
 compruebaClavePrivada :: ClavePublicaYPrivadaRSA -> Integer -> Bool
 compruebaClavePrivada (ClavePublicaYPrivadaRSA e _ d _ _) phi_n = d*e == mod 1 phi_n
+
+compruebaClavePrivada' :: Integer -> Integer -> Integer -> Bool 
+compruebaClavePrivada' e d phi_n = d*e == mod 1 phi_n
 
     {-------------------------------------------------------------------------
                             Clave pública y privada
@@ -68,10 +68,14 @@ clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
     let e = unsafePerformIO (generate (calculoE' phi))
     let d = exponenentesMod e (phi-1) phi
-    let clavePub = claveNE pq e semilla
-    let clavePriv = construyeClave d n
-    let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=clavePub, parPrivado=clavePriv}
-    return cpp
+    if compruebaClavePrivada' e d phi then do
+        let pub = construyeClave e n
+        let priv = construyeClave d n
+        let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=pub, parPrivado=priv}
+        imprime "Se han generado con éxito las claves pública y privada."
+        return cpp
+    else do
+       clavesPublicaYPrivadaIO pq
     where
         n = calculoN pq
         phi = calculoPhi p q
@@ -99,33 +103,67 @@ prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
     where
         exp = c^e
 
-cifraMensaje :: Mensaje -> Clave -> (Mensaje, [Int])
-cifraMensaje msg (e,n) = (deNumerosATexto numero, preparado)
+-- encriptaRSA :: Mensaje -> (Integer,Integer) -> Mensaje
+-- encriptaRSA m (n,e) = deIntegerAString' (exponenentesMod numero e n)
+--     where 
+--         numero = toInteger $ transformaEnNumero (textoANumeros m)
+--         cifrado = exponenentesMod numero e n
+--         restaurarTexto $ introduceEnLista cifrado
+
+encriptaRSA :: Mensaje -> Clave -> Mensaje
+encriptaRSA m (n,e) = restaurarTexto listaNumerosCif
+    where 
+        numero = toInteger $ transformaEnNumero (textoANumeros m)
+        cifrado = fromInteger $ exponenentesMod numero e n    
+        listaNumerosCif = introduceEnLista cifrado
+
+desencriptaRSA :: Mensaje -> Clave -> Mensaje
+desencriptaRSA = encriptaRSA
+
+
+
+
+
+
+
+
+
+-- encriptaRSA :: Mensaje -> Clave -> Integer
+-- encriptaRSA m (e,n) = exponenentesMod (toInteger entero) e n
+--     where 
+--         binario = traduceTextoABinario' m 
+--         entero = deBitsAInt binario
+
+-- desencriptaRSA :: Integer -> Clave -> Mensaje
+-- desencriptaRSA m (d,n) = binarioATexto desencriptado
+--     where 
+--         numero = exponenentesMod m d n
+--         desencriptado = deIntABits $ fromInteger numero
+
+
+cifraMensaje :: Mensaje -> Clave -> Mensaje
+cifraMensaje msg (e,n) = deNumerosATexto numero
     where
         preparado = prepararTexto msg
         mensaje = toInteger $ transformaEnNumero preparado
         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
 
-descifraMensaje :: (Mensaje, [Int]) -> Clave -> Mensaje
-descifraMensaje (msg, control) (e,n) = restaurarTexto control
+descifraMensaje :: Mensaje -> Clave -> Mensaje
+descifraMensaje msg clave@(e,n) = restaurarTexto numero
+    where
+        preparado = prepararTexto msg
+        mensaje = toInteger $ transformaEnNumero preparado
+        numero = digitos $ fromInteger $ exponenentesMod mensaje e n
+        
 
--- cifraMensaje :: String -> Clave -> (String, Bool) 
--- cifraMensaje m (n,e) = (deIntegerAString (exponenentesMod (transformaEnNumero preparado) e n), control)
---     where 
---         preparado = preparaMensaje m
---         control = esPrimerElementoCero preparado
+-- Alternativa poco segura: 
 
--- descifraMensaje :: (String, Bool) -> Clave -> String 
--- descifraMensaje = cifraMensaje
-
--- cifraMensaje :: ClavePublicaYPrivadaRSA -> Mensaje -> (Integer, Bool)
--- cifraMensaje (ClavePublicaYPrivadaRSA e n _ _ _) msg = (cifrado, control)
+-- cifraMensaje :: Mensaje -> Clave -> (Mensaje, [Int])
+-- cifraMensaje msg (e,n) = (deNumerosATexto numero, preparado)
 --     where
---         preparado = preparaMensaje msg
---         control = esPrimerElementoCero preparado
---         cifrado = exponenentesMod (toInteger $ deDigitosANum preparado) e n
+--         preparado = prepararTexto msg
+--         mensaje = toInteger $ transformaEnNumero preparado
+--         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
 
--- descifraMensaje :: ClavePublicaYPrivadaRSA -> (Integer, Bool) -> Mensaje
--- descifraMensaje clave@(ClavePublicaYPrivadaRSA e n d _ _) (cif,con) = deRepresentacion (fromInteger descifrado) con
---     where
---         descifrado = exponenentesMod cif e n
+-- descifraMensaje :: (Mensaje, [Int]) -> Clave -> Mensaje
+-- descifraMensaje (msg, control) (e,n) = restaurarTexto control

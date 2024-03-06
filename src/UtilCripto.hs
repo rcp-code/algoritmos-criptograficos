@@ -12,6 +12,10 @@ import Data.Vector as V
 import Data.Matrix as M
 import Prelude as P
 import Data.List as L
+import Data.Char
+import Constantes
+import Data.Maybe
+import System.Random
 
     {----------------------------------------------------------------------
                     Aritmética modular y números primos
@@ -134,3 +138,151 @@ factorizacionFermat' num aux
 
 construyeClave :: Integer -> Integer -> Clave
 construyeClave p q = (p,q)
+
+
+    {----------------------------------------------------------------------
+                    Funciones auxiliares para los mensajes
+    ----------------------------------------------------------------------}
+
+-- Parte en n trozos
+parte :: Int -> [a] -> [[a]]
+parte _ [] = []
+parte n xs = L.take n xs:parte n (L.drop n xs)
+
+deStringAInteger :: String -> Integer
+deStringAInteger = read . L.concatMap aux
+    where aux c | c < 'd' = '0' : show (ord c)
+                | otherwise = show (ord c)
+
+deIntegerAString :: Integer -> String
+deIntegerAString m
+    | x == 0 = aux s
+    | x == 1 = chr (read (L.take 1 s)) : aux (L.drop 1 s)
+    | otherwise = chr (read (L.take 2 s)) : aux (L.drop 2 s)
+    where
+        x = rem (L.length (show m)) 3
+        s = show m
+        aux n = L.map (chr . read) (parte 3 n)
+
+---
+
+estaEnRangoASCII :: Int -> Bool
+estaEnRangoASCII n = n >= ord ' ' && n <= ord '~'
+
+deStringAInteger' :: String -> Integer
+deStringAInteger' = read . L.concatMap aux
+  where
+    aux c = show (ord c)
+
+deIntegerAString' :: Integer -> String
+deIntegerAString' m
+  | x == 0 = aux s
+  -- | otherwise = chr (read (L.take 3 s)) : aux (L.drop 3 s)
+  | otherwise = if estaEnRangoASCII num1
+                   then chr num1 : aux (L.drop 3 s)
+                   else error "El código no está dentro de la tabla ASCII."
+  where
+    x = rem (L.length (show m)) 3
+    s = show m
+    num1 = deDigitosANum $ L.take 3 (digitos (fromInteger m))
+    num2 = deDigitosANum $ L.take 2 (digitos (fromInteger m))
+    aux n = L.map (chr . read) (parte 3 n)
+
+-- Funciones de depuración
+mostrarRepresentacion :: String -> String
+mostrarRepresentacion str = show (L.map ord str)
+
+mostrarRepresentacionNumerica :: String -> String
+mostrarRepresentacionNumerica str = show (deStringAInteger str)
+
+---
+-- Convierte un carácter a su valor numérico según su posición en asociaciones
+deCaracterANumero :: Char -> [Int]
+deCaracterANumero c = maybeToList $ L.lookup c asociaciones
+
+-- Convierte una lista de caracteres a una lista de números
+textoANumeros :: String -> [Int]
+textoANumeros = P.concatMap deCaracterANumero
+
+-- Función para preparar un texto antes de encriptar
+prepararTexto :: String -> [Int]
+prepararTexto = textoANumeros
+
+-- Convierte un número a su carácter según asociaciones
+deNumeroACaracter :: Int -> [Char]
+deNumeroACaracter n = maybeToList $ L.lookup n $ L.map intercambia asociaciones         -- intercambia las posiciones en las tuplas en asociaciones y después busca el número para sacar el caracter que le corresponde
+
+-- Convierte una lista de números a una lista de caracteres
+deNumerosATexto :: [Int] -> Mensaje
+deNumerosATexto = L.concatMap deNumeroACaracter
+
+-- Función para restaurar el texto después de descifrar
+restaurarTexto :: [Int] -> Mensaje
+restaurarTexto = deNumerosATexto
+
+preparaMensaje :: Mensaje -> [Int]
+preparaMensaje "" = []
+preparaMensaje ms = preparaMensaje' ms []
+
+preparaMensaje' :: Mensaje -> [Int] -> [Int]
+preparaMensaje' "" auxs = auxs
+preparaMensaje' (c:ms) auxs
+    | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
+    | otherwise = preparaMensaje' ms (auxs P.++ listaTransf)
+    where
+        indice = obtieneIndice c
+        elemento = asociaciones !! indice
+        numero = snd elemento
+        listaTransf = introduceEnLista numero
+
+-- Función auxiliar que transforma un número en una lista con números de dos dígitos
+introduceEnLista :: Int -> [Int]
+introduceEnLista n = [deStringAInt s | s<-ns]
+    where
+        numero = toInteger n
+        ns = parte 2 (show numero)
+
+transformaEnNumero :: [Int] -> Int
+transformaEnNumero [] = error "No se puede convertir a entero porque la lista esta vacia."
+transformaEnNumero ns = deDigitosANum $ L.concat [digitos x | x<-ns]
+
+deIntAString :: Integer -> String
+deIntAString n
+    | x==0 = L.concat traduccionDos
+    | x==1 = L.concat traduccionUno
+    | otherwise = error "No se puede traducir el número en una cadena de texto."
+    where
+        cadena = show n
+        x = rem (L.length cadena) 2
+        particionesDos = L.map deStringAInt (parte 2 cadena)
+        particionesUno = L.map deStringAInt (parte 1 cadena)
+        traduccionDos = L.map deNumeroACaracter particionesDos
+        traduccionUno = L.map deNumeroACaracter particionesUno
+
+    {----------------------------------------------------------------------
+                                Otras funciones
+    ----------------------------------------------------------------------}
+
+-- Introduce dos números en una tupla
+introduceEnTupla :: (Integral a, Num a) => a -> a -> (a, a)
+introduceEnTupla p q = (p,q)
+
+    {----------------------------------------------------------------------
+                            Funciones de aleatoriedad
+    ----------------------------------------------------------------------}
+
+-- Genera una lista de números aleatorios
+generaAleatoriosL :: Int -> [Int]
+generaAleatoriosL semilla = L.concat [generaAleatorios semilla | _ <-[1..100]]
+    where
+        lista = L.take 1000000000000 $ randoms (mkStdGen semilla)
+        generaAleatorios :: Int -> [Int]
+        generaAleatorios semilla = [mod x 1000000000000 | x<-lista]
+
+-- Genera un número aleatorio entre dos valores
+generaAleatorio :: Int -> Int -> Int -> Int
+generaAleatorio semilla vMin vMax = fst $ randomR (vMin, vMax) (mkStdGen semilla)
+
+-- Genera un número aleatorio entre 0 y 1
+generaAleatorio' :: Int -> Int
+generaAleatorio' semilla = fst $ randomR (0, 1) (mkStdGen semilla)

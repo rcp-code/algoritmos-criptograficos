@@ -20,6 +20,7 @@ import Data.Bits
 import Data.Word
 import Math.NumberTheory.Logarithms
 import Data.Maybe
+import GHC.Enum
 
     {----------------------------------------------------------------------
                             Comprobaciones
@@ -78,11 +79,53 @@ deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
         ps = [0..tam-1]
         union = L.zip ns (L.reverse ps)
 
-deListaAVector :: [a] -> Vector a
-deListaAVector = V.fromList
+---
 
-deVectorALista :: Vector a -> [a]
-deVectorALista = V.toList
+-- -- Convierte un número en binario a su representación de texto
+-- binarioATexto :: Int -> Mensaje
+-- binarioATexto numero
+--   | numero == 0 = "0"
+--   | otherwise = reverse $ unfoldr (\x -> if x == 0 then Nothing else Just (intToChar (x .&. 0xFF), x `shiftR` 8)) numero
+
+-- binarioATexto' :: Int -> String
+-- binarioATexto' numBinario
+--   | numBinario == 0 = "0"
+--   | otherwise = reverse $ unfoldr (\x -> if x == 0 then Nothing else Just (chr (fromIntegral (x .&. 0xFF)), x `shiftR` 8)) numBinario
+
+-- -- Convierte un entero a un carácter
+-- intToChar :: Int -> Char
+-- intToChar = chr . fromIntegral
+
+
+-- Tamaño de bits de un bloque de texto:
+compruebaTamBits :: Mensaje -> Int
+compruebaTamBits msg = finiteBitSize (traduceTextoABinario msg)
+
+traduceTextoABinario :: Mensaje -> Int
+traduceTextoABinario = P.foldl (\acc c -> (acc `shiftL` 8) .|. ord c) 0
+
+traduceTextoABinario' :: Mensaje -> [Bool]
+traduceTextoABinario' = L.concatMap caracteresABits
+  where
+    caracteresABits c = L.reverse [testBit (ord c) i | i <- [0..7]]
+
+-- Convierte una lista de bits a su representación de texto
+binarioATexto :: [Bool] -> Mensaje
+binarioATexto = L.unfoldr (\x -> if L.null x then Nothing else Just (chr (bitsAByte (L.take 8 x)), L.drop 8 x))
+
+-- Convierte una lista de bits a un byte
+bitsAByte :: [Bool] -> Int
+bitsAByte = L.foldl (\acc b -> acc * 2 + fromEnum b) 0
+
+-- Convierte una lista de bits a un número entero
+deBitsAInt :: [Bool] -> Int
+deBitsAInt = L.foldl (\acc b -> acc `shiftL` 1 .|. fromEnum b) 0
+
+-- Transforma un número entero a una lista de bits
+deIntABits :: Int -> [Bool]
+deIntABits n = L.reverse [testBit n i | i <- [0..finiteBitSize n - 1]]
+
+---
 
 deStringAInt :: String -> Int
 deStringAInt [] = 0
@@ -133,6 +176,21 @@ ultimo = L.last
 obtieneElemento :: [a] -> Int -> a
 obtieneElemento lista i = lista !! i
 
+obtieneSubLista :: [[a]] -> Int -> [a]
+obtieneSubLista listas i = listas !! i
+
+slicing :: [a] -> Int -> Int -> [a]
+slicing [] _ _ = []
+slicing lista inicio fin = slicing' lista inicio fin []
+
+slicing' :: [a] -> Int -> Int -> [a] -> [a]
+slicing' [] _ _ _ = []
+slicing' lista inicio fin aux
+    | fin>=inicio = slicing' lista inicio (fin - 1) (e:aux)
+    | otherwise = aux
+    where 
+        e = lista !! fin
+
 numeroDigitos :: Int -> Int
 numeroDigitos n = tamLista $ digitos n
 
@@ -141,7 +199,7 @@ numeroDigitos' n = tamListaGen $ digitos n
 
 elementoCentral :: [Int] -> Int
 elementoCentral lista = lista !! pos
-  where 
+  where
     pos = abs $ div (tamLista lista) 2
 
 --Obtiene el tamaño de una lista
@@ -167,185 +225,3 @@ estaEnCaracteres caracter cs = caracter `L.elem` cs
 -- Obtiene el índice de un elemento de caracteres
 obtieneIndice :: Char -> Int
 obtieneIndice caracter = cabeza [i | (c,i)<-asociaciones, c==caracter]
-
-convierteAVector :: [a] -> Vector a
-convierteAVector = V.fromList
-
--- Obtiene un vector de un vector de vectores
-obtieneVector :: Int -> Vector (Vector a) -> Vector a
-obtieneVector i vector = vector V.! i
-
--- obtiene el primero elemento de un vector
-cabezaVector :: Vector a -> a
-cabezaVector = V.head
-
--- obtiene el último elemento de un vector
-ultimoVector :: Vector a -> a
-ultimoVector = V.last
-
--- Vector vacío
-vectorVacio :: Vector a
-vectorVacio = V.empty
-
--- Agrega un elemento al principio de un vector
-agregaPrimero :: a -> Vector a -> Vector a
-agregaPrimero = V.cons
-
--- Agrega un elemento al final de un vector
-agregaUltimo :: Vector a -> a -> Vector a
-agregaUltimo = V.snoc
-
--- Agrega un vector al principio de un vector de vectores
-agregaVectorPrimero :: Vector a -> Vector (Vector a) -> Vector (Vector a)
-agregaVectorPrimero = V.cons
-
--- Agrega un vector al final de un vector de vectores
-agregaVectorUltimo :: Vector (Vector a) -> Vector a -> Vector (Vector a)
-agregaVectorUltimo = V.snoc
-
-    {----------------------------------------------------------------------
-                    Funciones auxiliares para los mensajes
-    ----------------------------------------------------------------------}
-
--- Parte en n trozos
-parte :: Int -> [a] -> [[a]]
-parte _ [] = []
-parte n xs = L.take n xs:parte n (L.drop n xs)
-
-subvectores :: Vector a -> [a]
-subvectores vector = subvectores' 0 vector []
-
-subvectores' :: Int -> Vector a -> [a] -> [a]
-subvectores' pos v aux
-    | pos>=0 && pos<=V.length v-3 = subvectores' (pos+1) v (aux L.++ V.toList (V.slice pos 3 v))
-    | otherwise = aux
-
--- Convierte un carácter a su valor numérico según su posición en asociaciones
-deCaracterANumero :: Char -> [Int]
-deCaracterANumero c = maybeToList $ L.lookup c asociaciones
-
--- Convierte una lista de caracteres a una lista de números
-textoANumeros :: String -> [Int]
-textoANumeros = P.concatMap deCaracterANumero
-
--- Función para preparar un texto antes de encriptar
-prepararTexto :: String -> [Int]
-prepararTexto = textoANumeros
-
--- Convierte un número a su carácter según asociaciones
-deNumeroACaracter :: Int -> [Char]
-deNumeroACaracter n = maybeToList $ L.lookup n $ L.map intercambia asociaciones         -- intercambia las posiciones en las tuplas en asociaciones y después busca el número para sacar el caracter que le corresponde
-
--- Convierte una lista de números a una lista de caracteres
-deNumerosATexto :: [Int] -> Mensaje
-deNumerosATexto = L.concatMap deNumeroACaracter
-
--- Otra forma de convertir una lista de números a una lista de caracteres
--- deNumerosATexto' :: [Int] -> [Char]
--- deNumerosATexto' [] = []
--- deNumerosATexto' (x:xs) =
---   let dosDigitos = read (show x L.++ L.take 1 (L.map intToDigit xs)) :: Int
---   in if dosDigitos <= L.genericLength caracteres - 1 then 
---         deNumeroACaracter dosDigitos L.++ deNumerosATexto' (L.drop 1 xs)
---      else deNumeroACaracter x L.++ deNumerosATexto' xs
-
-deNumerosATexto' :: [Int] -> [Char]
-deNumerosATexto' [] = []
-deNumerosATexto' (x:xs) =
-  let dosDigitosString = show x L.++ L.take 1 (L.map intToDigit xs)
-  in if tamLista dosDigitosString <= tamLista caracteres - 1 then
-        deNumeroACaracter (read dosDigitosString :: Int) L.++ deNumerosATexto' (L.drop 1 xs)
-     else deNumeroACaracter x L.++ deNumerosATexto' xs
-
-{- Esta versión verifica si el número actual y el siguiente pueden formar un número de dos dígitos válido. 
-    Si es así, se usa ese número de dos dígitos y se avanza en la lista de números saltando el siguiente elemento. 
-    De lo contrario, se utiliza el número actual solo y se avanza hacia el siguiente elemento. -}
-
--- Función para restaurar el texto después de descifrar
-restaurarTexto :: [Int] -> Mensaje
-restaurarTexto = deNumerosATexto
-
--- preparaMensaje :: Mensaje -> [Integer]
--- preparaMensaje "" = []
--- preparaMensaje ms = preparaMensaje' ms []
-
--- preparaMensaje' :: Mensaje -> [Integer] -> [Integer]
--- preparaMensaje' "" auxs = auxs
--- preparaMensaje' (c:ms) auxs
---     | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
---     | otherwise = preparaMensaje' ms (auxs P.++ listaTransf)
---     where
---         indice = obtieneIndice c
---         elemento = asociaciones !! indice
---         numero = snd elemento
---         listaTransf = introduceEnLista numero
-
--- Función auxiliar que transforma un número en una lista con sus dígitos de forma que:
---      · Si el número tiene menos de 2 cifras, le agrega un 0 a la izquierda.
---      · En caso contrario, parte el número en 2 dígitos (en principio, y por ahora, no habrá números con más de dos dígitos)
-introduceEnLista :: Int -> [Integer]
-introduceEnLista n
-    | numeroDigitos n<2 = 0:[toInteger n]
-    | otherwise = [toInteger (deStringAInt s) | s<-ns]
-    where
-        numero = toInteger n
-        ns = parte 1 (show numero)
-
--- transformaEnNumero :: (Integral a, Num a) => [a] -> a
--- transformaEnNumero [] = error "No se puede convertir a entero porque la lista esta esVacia."
--- transformaEnNumero ns = deDigitosANum ns
-
-transformaEnNumero :: [Int] -> Int
-transformaEnNumero [] = error "No se puede convertir a entero porque la lista esta esVacia."
-transformaEnNumero ns = deDigitosANum $ L.concat [digitos x | x<-ns]
-
-deIntAString :: Integer -> String
-deIntAString n
-    | x==0 = L.concat traduccionDos
-    | x==1 = L.concat traduccionUno
-    | otherwise = error "No se puede traducir el número en una cadena de texto."
-    where
-        cadena = show n
-        x = rem (L.length cadena) 2
-        particionesDos = L.map deStringAInt (parte 2 cadena)
-        particionesUno = L.map deStringAInt (parte 1 cadena)
-        traduccionDos = L.map deNumeroACaracter particionesDos
-        traduccionUno = L.map deNumeroACaracter particionesUno
-
--- deIntegerAString :: Integer -> String
--- deIntegerAString m
---     | x==0 = aux s
---     | x==1 = chr (read (L.take 1 s)):aux (L.drop 1 s)
---     | x==2 = chr (read (L.take 2 s)):aux (L.drop 2 s)
---     where
---         s = show m
---         x = rem (L.length s) 3
---         aux n = L.map (chr . read) (parte 3 n)
-
-    {----------------------------------------------------------------------
-                                Otras funciones
-    ----------------------------------------------------------------------}
-
--- Introduce dos números en una tupla
-introduceEnTupla :: (Integral a, Num a) => a -> a -> (a, a)
-introduceEnTupla p q = (p,q)
-
-    {----------------------------------------------------------------------
-                            Funciones de aleatoriedad
-    ----------------------------------------------------------------------}
-
--- Genera una lista de números aleatorios
-generaAleatoriosL :: Int -> [Int]
-generaAleatoriosL semilla = L.concat [generaAleatorios semilla | _ <-[1..100]]
-    where
-        lista = L.take 1000000000000 $ randoms (mkStdGen semilla)
-        generaAleatorios :: Int -> [Int]
-        generaAleatorios semilla = [mod x 1000000000000 | x<-lista]
-
--- Genera un número aleatorio entre dos valores
-generaAleatorio :: Int -> Int -> Int -> Int
-generaAleatorio semilla vMin vMax = fst $ randomR (vMin, vMax) (mkStdGen semilla)
-
--- Genera un número aleatorio entre 0 y 1
-generaAleatorio' :: Int -> Int
-generaAleatorio' semilla = fst $ randomR (0, 1) (mkStdGen semilla)

@@ -55,7 +55,7 @@ library
     exposed-modules: Interaccion
 
     -- Modules included in this library but not exported.
-    other-modules: AutomataCelular1D, AutomataCelularSO, Constantes, Criptoanalisis, RSA, Tipos, UtilCripto, UtilGeneral, UtilIO
+    other-modules: AutomataCelular1D, AutomataCelularSO, CifradoBloque, Constantes, RSA, Tipos, UtilCripto, UtilGeneral, UtilIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -71,6 +71,7 @@ library
                     time ^>=1.11.1,
                     Crypto ^>=4.2.5.2,
                     integer-logarithms ^>=1.0.3.1,
+                    cond ^>=0.5.1,
 
     -- Directories containing source files.
     hs-source-dirs:   src
