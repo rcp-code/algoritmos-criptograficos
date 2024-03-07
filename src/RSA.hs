@@ -30,7 +30,7 @@ calculoN :: (Integer, Integer) -> Integer
 calculoN (p, q) = abs (p*q)
 
 claveNE :: (Integer, Integer) -> Int -> Clave
-claveNE pq@(p, q) semilla = cabeza [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
+claveNE pq@(p, q) semilla = primero [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
     where
         phi = calculoPhi p q
         n = calculoN pq
@@ -103,22 +103,22 @@ prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
     where
         exp = c^e
 
--- encriptaRSA :: Mensaje -> (Integer,Integer) -> Mensaje
--- encriptaRSA m (n,e) = deIntegerAString' (exponenentesMod numero e n)
+-- cifraRSA :: Mensaje -> (Integer,Integer) -> Mensaje
+-- cifraRSA m (n,e) = deIntegerAString' (exponenentesMod numero e n)
 --     where 
 --         numero = toInteger $ transformaEnNumero (textoANumeros m)
 --         cifrado = exponenentesMod numero e n
 --         restaurarTexto $ introduceEnLista cifrado
 
-encriptaRSA :: Mensaje -> Clave -> Mensaje
-encriptaRSA m (n,e) = restaurarTexto listaNumerosCif
+cifraRSA :: Mensaje -> Clave -> Mensaje
+cifraRSA m (n,e) = restaurarTexto listaNumerosCif
     where 
         numero = toInteger $ transformaEnNumero (textoANumeros m)
         cifrado = fromInteger $ exponenentesMod numero e n    
         listaNumerosCif = introduceEnLista cifrado
 
-desencriptaRSA :: Mensaje -> Clave -> Mensaje
-desencriptaRSA = encriptaRSA
+descifraRSA :: Mensaje -> Clave -> Mensaje
+descifraRSA = cifraRSA
 
 
 
@@ -128,14 +128,14 @@ desencriptaRSA = encriptaRSA
 
 
 
--- encriptaRSA :: Mensaje -> Clave -> Integer
--- encriptaRSA m (e,n) = exponenentesMod (toInteger entero) e n
+-- cifraRSA :: Mensaje -> Clave -> Integer
+-- cifraRSA m (e,n) = exponenentesMod (toInteger entero) e n
 --     where 
 --         binario = traduceTextoABinario' m 
 --         entero = deBitsAInt binario
 
--- desencriptaRSA :: Integer -> Clave -> Mensaje
--- desencriptaRSA m (d,n) = binarioATexto desencriptado
+-- descifraRSA :: Integer -> Clave -> Mensaje
+-- descifraRSA m (d,n) = binarioATexto desencriptado
 --     where 
 --         numero = exponenentesMod m d n
 --         desencriptado = deIntABits $ fromInteger numero

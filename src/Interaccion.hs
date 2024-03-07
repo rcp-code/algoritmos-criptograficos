@@ -150,7 +150,7 @@ obtieneNumAleatorio' = do
     let listaAleatorios = generaAleatoriosL semillaLista
     let lAleatBase2 = concat (cambioABase2Lista listaAleatorios)
     let inicia = inicializa numCeldas 30 lAleatBase2
-    let automata = generaACSO 30 numPasos inicia numCeldas
+    let automata = generaACSO 30 numPasos inicia
     let indices = [1..L.genericLength automata-1]
     let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
     let num = deListaBinarioANum listaCentros
@@ -237,8 +237,8 @@ mainDepuracion = do
     let mensajeOriginal = "Hola, mundo"
     putStr "El mensaje que se va a encriptar es: "
     imprime mensajeOriginal
-    let mensajeEncriptado = encriptaRSA mensajeOriginal clavePub
-    let mensajeDesencriptado = desencriptaRSA mensajeEncriptado clavePub
+    let mensajeEncriptado = cifraRSA mensajeOriginal clavePub
+    let mensajeDesencriptado = descifraRSA mensajeEncriptado clavePub
     putStrLn $ "Mensaje Original: " ++ mensajeOriginal
     putStrLn $ "Representación Original: " ++ mostrarRepresentacion mensajeOriginal
     putStrLn $ "Representación Numérica: " ++ mostrarRepresentacionNumerica mensajeOriginal

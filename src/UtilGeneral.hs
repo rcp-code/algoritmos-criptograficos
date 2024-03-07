@@ -36,7 +36,7 @@ esEntero x = snd (properFraction x) == 0
 
 esPrimerElementoCero :: (Eq a, Num a) => [a] -> Bool
 esPrimerElementoCero ls
-    | cabeza ls==0 = True
+    | primero ls==0 = True
     | otherwise = False
 
 compruebaPosicionLista :: Int -> [a] -> Bool
@@ -166,8 +166,8 @@ intercambia :: (a, b) -> (b, a)
 intercambia (x,y) = (y,x)
 
 -- Obtiene el primer elemento de una lista
-cabeza :: [a] -> a
-cabeza = L.head
+primero :: [a] -> a
+primero = L.head
 
 -- Obtiene el último elemento de una lista
 ultimo :: [a] -> a
@@ -224,4 +224,4 @@ estaEnCaracteres caracter cs = caracter `L.elem` cs
 
 -- Obtiene el índice de un elemento de caracteres
 obtieneIndice :: Char -> Int
-obtieneIndice caracter = cabeza [i | (c,i)<-asociaciones, c==caracter]
+obtieneIndice caracter = primero [i | (c,i)<-asociaciones, c==caracter]

@@ -40,15 +40,15 @@ aplicaReglaSO :: Int -> [Int] -> [Int] -> [Int]
 aplicaReglaSO r anteriores celdas =
     primeraCelda : [abs $ AC.regla r (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) - (anteriores !! i) | i <- [1..L.length celdas - 2]] L.++ [ultimaCelda]
     where
-        primeraCelda = abs $ AC.regla r (ultimo celdas) (cabeza celdas) (cabeza (L.tail celdas)) - cabeza anteriores
-        ultimaCelda = abs $ AC.regla r (ultimo (L.init celdas)) (ultimo celdas) (cabeza celdas) - ultimo anteriores
+        primeraCelda = abs $ AC.regla r (ultimo celdas) (primero celdas) (primero (L.tail celdas)) - primero anteriores
+        ultimaCelda = abs $ AC.regla r (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) - ultimo anteriores
 
 
 aplicaRegla :: Int -> [Int] -> [Int]
 aplicaRegla reg celdas = primeraCelda : [AC.regla reg (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) | i <- [1..L.length celdas - 2]] L.++ [ultimaCelda]
     where
-        primeraCelda = AC.regla reg (ultimo celdas) (cabeza celdas) (cabeza (L.tail celdas))
-        ultimaCelda = AC.regla reg (ultimo (L.init celdas)) (ultimo celdas) (cabeza celdas)
+        primeraCelda = AC.regla reg (ultimo celdas) (primero celdas) (primero (L.tail celdas))
+        ultimaCelda = AC.regla reg (ultimo (L.init celdas)) (ultimo celdas) (primero celdas)
 
 -- Inicialización:
 
@@ -57,6 +57,9 @@ inicializa n reg lista = CycleSO {nCeldas=n, pasado=vecindad, presente=futuraVec
     where
         vecindad = L.take n lista
         futuraVecindad = aplicaRegla reg vecindad
+
+inicializacion :: Int -> [Int] -> [Int] -> CycleSO Int
+inicializacion n lista1 lista2 = CycleSO {nCeldas=n, pasado=lista1, presente=lista2}
 
 -- Ejecución:
 
@@ -78,8 +81,8 @@ ejecuta regla pasos ciclo aux
     where
         nuevoCiclo = unPaso regla ciclo
 
-generaACSO :: Int -> Int -> CycleSO Int -> Int -> [[Int]]
-generaACSO regla pasos ini ancho = vistaPlana' <$> ejecutaACSO regla pasos ini
+generaACSO :: Int -> Int -> CycleSO Int -> [[Int]]
+generaACSO regla pasos ini = vistaPlana' <$> ejecutaACSO regla pasos ini
 
 -- Muestra el AC:
 
@@ -100,22 +103,24 @@ aplicaReglaSO' r radio anteriores celdas =
     primeraCelda : [abs $ AC.regla r (obtenerCelda i (tamLista celdas) celdas) (celdas !! i) (obtenerCelda (i+1) radio celdas) - (anteriores !! i) | i <- [radio..L.length celdas - radio - 1]] L.++ [ultimaCelda]
     where
         celdas' = celdas
-        primeraCelda = abs $ AC.regla r (obtenerCelda (L.length celdas' - 1) radio celdas') (cabeza celdas')  (cabeza (L.drop 1 celdas')) - cabeza anteriores
-        ultimaCelda = abs $ AC.regla r (obtenerCelda (L.length celdas - radio - 2) radio celdas) (ultimo celdas) (cabeza celdas) - ultimo anteriores
+        primeraCelda = abs $ AC.regla r (obtenerCelda (L.length celdas' - 1) radio celdas') (primero celdas')  (primero (L.drop 1 celdas')) - primero anteriores
+        ultimaCelda = abs $ AC.regla r (obtenerCelda (L.length celdas - radio - 2) radio celdas) (ultimo celdas) (primero celdas) - ultimo anteriores
 
 obtenerCelda :: Int -> Int -> [Int] -> Int
 obtenerCelda pos radio celdas
-  | pos<radio = cabeza celdas
-  | pos>=L.length celdas - radio = ultimo celdas
+  | pos<radio = primero celdas
+  | pos>=tam - radio = ultimo celdas
   | otherwise = celdas !! pos
+  where 
+    tam = tamLista celdas
 
 
 aplicaRegla' :: Int -> Int -> [Int] -> [Int]
 aplicaRegla' reg radio celdas = primeraCelda : [AC.regla reg (obtenerCelda i (tamLista celdas) celdas) (celdas !! i) (obtenerCelda (i+1) radio celdas) | i <- [radio..L.length celdas - radio - 1]] L.++ [ultimaCelda]
     where
         celdas' = celdas
-        primeraCelda = AC.regla reg (obtenerCelda (L.length celdas' - 1) radio celdas') (cabeza celdas')  (cabeza (L.drop 1 celdas'))
-        ultimaCelda = AC.regla reg (obtenerCelda (L.length celdas - radio - 2) radio celdas) (ultimo celdas) (cabeza celdas)
+        primeraCelda = AC.regla reg (obtenerCelda (L.length celdas' - 1) radio celdas') (primero celdas')  (primero (L.drop 1 celdas'))
+        ultimaCelda = AC.regla reg (obtenerCelda (L.length celdas - radio - 2) radio celdas) (ultimo celdas) (primero celdas)
 
 unPaso' :: Int -> Int -> CycleSO Int -> CycleSO Int
 unPaso' reg radio ciclo@(CycleSO _ pasado presente) = CycleSO {pasado=nuevoPasado, presente=nuevaVecindad}
