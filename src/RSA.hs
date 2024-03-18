@@ -6,7 +6,7 @@ module RSA where
 
 import UtilGeneral
 import UtilCripto
-import AutomataCelular1D
+import AutomataCelular
 import Tipos
 
 import Data.List as L
@@ -66,12 +66,13 @@ compruebaClavePrivada' e d phi_n = d*e == mod 1 phi_n
 clavesPublicaYPrivadaIO :: (Integer, Integer) -> IO ClavePublicaYPrivadaRSA
 clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
-    let e = unsafePerformIO (generate (calculoE' phi))
-    let d = exponenentesMod e (phi-1) phi
-    if compruebaClavePrivada' e d phi then do
-        let pub = construyeClave e n
-        let priv = construyeClave d n
-        let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=pub, parPrivado=priv}
+    --let e = unsafePerformIO (generate (calculoE' phi))
+    let en = claveNE pq semilla
+    let d = exponenentesMod (fst en) (phi-1) phi
+    if compruebaClavePrivada' (fst en) d phi then do
+        --let pub = en
+        let priv = construyeClave d (snd en)
+        let cpp = ClavePublicaYPrivadaRSA {e=fst en, n=snd en, d=d, parPublico=en, parPrivado=priv}
         imprime "Se han generado con éxito las claves pública y privada."
         return cpp
     else do

@@ -17,6 +17,7 @@ import Constantes
 import Data.Maybe
 import System.Random
 
+
     {----------------------------------------------------------------------
                     Aritmética modular y números primos
     ----------------------------------------------------------------------}
@@ -266,6 +267,10 @@ deIntAString n
 -- Introduce dos números en una tupla
 introduceEnTupla :: (Integral a, Num a) => a -> a -> (a, a)
 introduceEnTupla p q = (p,q)
+
+xor' :: Bool -> Bool -> Bool
+xor' True x = not x
+xor' False x = x
 
     {----------------------------------------------------------------------
                             Funciones de aleatoriedad
