@@ -4,21 +4,20 @@ module Constantes where
                         Definición de "constantes"
     ----------------------------------------------------------------------}
 
-import Data.List as L
-import Prelude as P
+import Data.List
 
     {----------------------------------------------------------------------
                         Constantes para cifrado
     ----------------------------------------------------------------------}
 
 caracteres :: String
-caracteres = ' ' : ['a'..'z'] P.++ ['A'..'Z'] P.++ ['0'..'9'] P.++ ['.',',']
+caracteres = ' ' : ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['.',',']
 
 numeros :: [Int]
 numeros = [10..]
 
 asociaciones :: [(Char, Int)]
-asociaciones = L.zip caracteres numeros
+asociaciones = zip caracteres numeros
 
     {----------------------------------------------------------------------
                     Constantes de autómatas celulares
@@ -41,3 +40,14 @@ reglaAC = 30
 
 pasosEvolucion :: Int
 pasosEvolucion = 10
+
+numPasosCALR, numPasosCAC, numPasosCAS :: Int
+numPasosCALR = 5
+numPasosCAC = 7
+numPasosCAS = 10
+
+numPasosCifrado :: Int
+numPasosCifrado = 10
+
+numBits :: Int
+numBits = 64

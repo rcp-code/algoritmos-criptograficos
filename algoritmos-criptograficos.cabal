@@ -124,4 +124,5 @@ test-suite algoritmos-criptograficos-test
         base ^>=4.16.0.0,
         QuickCheck ^>=2.14, 
         HUnit ^>=1.6.2.0,
+        hspec ^>=2.11.7,
         algoritmos-criptograficos

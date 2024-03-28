@@ -150,115 +150,59 @@ parte :: Int -> [a] -> [[a]]
 parte _ [] = []
 parte n xs = L.take n xs:parte n (L.drop n xs)
 
-deStringAInteger :: String -> Integer
-deStringAInteger = read . L.concatMap aux
-    where aux c | c < 'd' = '0' : show (ord c)
-                | otherwise = show (ord c)
+bloques64Bits :: [Int] -> [[Int]]
+bloques64Bits = parte 64
 
-deIntegerAString :: Integer -> String
-deIntegerAString m
-    | x == 0 = aux s
-    | x == 1 = chr (read (L.take 1 s)) : aux (L.drop 1 s)
-    | otherwise = chr (read (L.take 2 s)) : aux (L.drop 2 s)
+transformaTextoEnBinario :: String -> [Int]
+transformaTextoEnBinario = L.concatMap transformaCaracterEnBinario
+
+transformaCaracterEnBinario :: Char -> [Int]
+transformaCaracterEnBinario c
+    | estaEnCaracteres c caracteres = if tamLista numeroAsociadoBinario<8
+                                        then agregaCerosAIzquierda numeroAsociadoBinario 8
+                                      else numeroAsociadoBinario
+    | otherwise = error "El caracter no es valido."
     where
-        x = rem (L.length (show m)) 3
-        s = show m
-        aux n = L.map (chr . read) (parte 3 n)
+        numeroAsociado = L.head [num | (car,num)<-asociaciones, car==c]
+        numeroAsociadoBinario = cambioABase2 numeroAsociado
 
----
-
-estaEnRangoASCII :: Int -> Bool
-estaEnRangoASCII n = n >= ord ' ' && n <= ord '~'
-
-deStringAInteger' :: String -> Integer
-deStringAInteger' = read . L.concatMap aux
-  where
-    aux c = show (ord c)
-
-deIntegerAString' :: Integer -> String
-deIntegerAString' m
-  | x == 0 = aux s
-  -- | otherwise = chr (read (L.take 3 s)) : aux (L.drop 3 s)
-  | otherwise = if estaEnRangoASCII num1
-                   then chr num1 : aux (L.drop 3 s)
-                   else error "El código no está dentro de la tabla ASCII."
-  where
-    x = rem (L.length (show m)) 3
-    s = show m
-    num1 = deDigitosANum $ L.take 3 (digitos (fromInteger m))
-    num2 = deDigitosANum $ L.take 2 (digitos (fromInteger m))
-    aux n = L.map (chr . read) (parte 3 n)
-
--- Funciones de depuración
-mostrarRepresentacion :: String -> String
-mostrarRepresentacion str = show (L.map ord str)
-
-mostrarRepresentacionNumerica :: String -> String
-mostrarRepresentacionNumerica str = show (deStringAInteger str)
-
----
--- Convierte un carácter a su valor numérico según su posición en asociaciones
-deCaracterANumero :: Char -> [Int]
-deCaracterANumero c = maybeToList $ L.lookup c asociaciones
-
--- Convierte una lista de caracteres a una lista de números
-textoANumeros :: String -> [Int]
-textoANumeros = P.concatMap deCaracterANumero
-
--- Función para preparar un texto antes de encriptar
-prepararTexto :: String -> [Int]
-prepararTexto = textoANumeros
-
--- Convierte un número a su carácter según asociaciones
-deNumeroACaracter :: Int -> [Char]
-deNumeroACaracter n = maybeToList $ L.lookup n $ L.map intercambia asociaciones         -- intercambia las posiciones en las tuplas en asociaciones y después busca el número para sacar el caracter que le corresponde
-
--- Convierte una lista de números a una lista de caracteres
-deNumerosATexto :: [Int] -> Mensaje
-deNumerosATexto = L.concatMap deNumeroACaracter
-
--- Función para restaurar el texto después de descifrar
-restaurarTexto :: [Int] -> Mensaje
-restaurarTexto = deNumerosATexto
-
-preparaMensaje :: Mensaje -> [Int]
-preparaMensaje "" = []
-preparaMensaje ms = preparaMensaje' ms []
-
-preparaMensaje' :: Mensaje -> [Int] -> [Int]
-preparaMensaje' "" auxs = auxs
-preparaMensaje' (c:ms) auxs
-    | c `L.notElem` caracteres = error "Caracter invalido en el mensaje."
-    | otherwise = preparaMensaje' ms (auxs P.++ listaTransf)
+-- Agrega ceros a la izquierda a un número binario de 8 bits
+agregaCerosAIzquierda :: [Int] -> Int -> [Int]
+agregaCerosAIzquierda ns bits
+    | numeroCeros>0 = agregaCerosAIzquierda (0:ns) bits
+    | otherwise = ns
     where
-        indice = obtieneIndice c
-        elemento = asociaciones !! indice
-        numero = snd elemento
-        listaTransf = introduceEnLista numero
+        numeroCeros = bits - tamLista ns
 
--- Función auxiliar que transforma un número en una lista con números de dos dígitos
-introduceEnLista :: Int -> [Int]
-introduceEnLista n = [deStringAInt s | s<-ns]
+transformaBinarioEnCaracter :: [Int] -> Char
+transformaBinarioEnCaracter bs = L.head [car | (car,num)<-asociaciones, num==numero]
     where
-        numero = toInteger n
-        ns = parte 2 (show numero)
+        numero = deListaBinarioANum bs
 
-transformaEnNumero :: [Int] -> Int
-transformaEnNumero [] = error "No se puede convertir a entero porque la lista esta vacia."
-transformaEnNumero ns = deDigitosANum $ L.concat [digitos x | x<-ns]
+transformaBinarioEnTexto :: [[Int]] -> String
+transformaBinarioEnTexto = L.map transformaBinarioEnCaracter
 
-deIntAString :: Integer -> String
-deIntAString n
-    | x==0 = L.concat traduccionDos
-    | x==1 = L.concat traduccionUno
-    | otherwise = error "No se puede traducir el número en una cadena de texto."
+transformaCaracterEnInt :: Char -> [Int]
+transformaCaracterEnInt c
+    | estaEnCaracteres c caracteres = [numeroAsociado]
+    | otherwise = error "El caracter no es valido."
     where
-        cadena = show n
-        x = rem (L.length cadena) 2
-        particionesDos = L.map deStringAInt (parte 2 cadena)
-        particionesUno = L.map deStringAInt (parte 1 cadena)
-        traduccionDos = L.map deNumeroACaracter particionesDos
-        traduccionUno = L.map deNumeroACaracter particionesUno
+        numeroAsociado = L.head [num | (car,num)<-asociaciones, car==c]
+
+transformaTextoEnEntero :: String -> [Int]
+transformaTextoEnEntero = L.concatMap transformaCaracterEnInt
+
+transformaIntEnCaracter :: Int -> Char
+transformaIntEnCaracter n = L.head [c | (c,num)<-asociaciones, num==n]
+
+transformaEnteroEnTexto :: [Int] -> String
+transformaEnteroEnTexto = L.map transformaIntEnCaracter
+
+transformaListaNumerosEnNumero :: [Int] -> Int
+transformaListaNumerosEnNumero ns = read $ L.concat [show $ obtieneElemento ns i | (n,i)<-L.zip ns [0..L.length ns-1]]
+
+transformaListaNumeros :: [[Int]] -> [Int]
+transformaListaNumeros = L.map transformaListaNumerosEnNumero
 
     {----------------------------------------------------------------------
                                 Otras funciones

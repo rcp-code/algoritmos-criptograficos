@@ -4,12 +4,13 @@ module Pruebas where
 import UtilIO
 import UtilGeneral
 import Constantes
-import AutomataCelularSO
+import AutomataCelular
+import LibTest
 
 
 mainPruebas :: IO ()
 mainPruebas = do
-    imprime "Está en el entorno de pruebas..."
+    imprime "Bienvenido/a al entorno de pruebas..."
     imprime "Fin de la ejecución."
 
     {----------------------------------------------------------------------

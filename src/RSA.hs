@@ -70,7 +70,6 @@ clavesPublicaYPrivadaIO pq@(p, q) = do
     let en = claveNE pq semilla
     let d = exponenentesMod (fst en) (phi-1) phi
     if compruebaClavePrivada' (fst en) d phi then do
-        --let pub = en
         let priv = construyeClave d (snd en)
         let cpp = ClavePublicaYPrivadaRSA {e=fst en, n=snd en, d=d, parPublico=en, parPrivado=priv}
         imprime "Se han generado con éxito las claves pública y privada."
@@ -104,24 +103,16 @@ prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
     where
         exp = c^e
 
--- cifraRSA :: Mensaje -> (Integer,Integer) -> Mensaje
--- cifraRSA m (n,e) = deIntegerAString' (exponenentesMod numero e n)
---     where 
---         numero = toInteger $ transformaEnNumero (textoANumeros m)
---         cifrado = exponenentesMod numero e n
---         restaurarTexto $ introduceEnLista cifrado
-
 cifraRSA :: Mensaje -> Clave -> Mensaje
-cifraRSA m (n,e) = restaurarTexto listaNumerosCif
+cifraRSA m (n,e) = transformaEnteroEnTexto cifrado
     where 
-        numero = toInteger $ transformaEnNumero (textoANumeros m)
-        cifrado = fromInteger $ exponenentesMod numero e n    
-        listaNumerosCif = introduceEnLista cifrado
+        numeroAsociado = transformaListaNumerosEnNumero $ transformaTextoEnEntero m 
+        operacionMod = exponenentesMod (toInteger numeroAsociado) e n
+        parteEn2 = parte 2 cifrado
+        cifrado = transformaListaNumeros parteEn2
 
 descifraRSA :: Mensaje -> Clave -> Mensaje
 descifraRSA = cifraRSA
-
-
 
 
 
@@ -141,21 +132,23 @@ descifraRSA = cifraRSA
 --         numero = exponenentesMod m d n
 --         desencriptado = deIntABits $ fromInteger numero
 
+-------------------------------------------------------------------
 
-cifraMensaje :: Mensaje -> Clave -> Mensaje
-cifraMensaje msg (e,n) = deNumerosATexto numero
-    where
-        preparado = prepararTexto msg
-        mensaje = toInteger $ transformaEnNumero preparado
-        numero = digitos $ fromInteger $ exponenentesMod mensaje e n
+-- cifraMensaje :: Mensaje -> Clave -> Mensaje
+-- cifraMensaje msg (e,n) = deNumerosATexto numero
+--     where
+--         preparado = prepararTexto msg
+--         mensaje = toInteger $ transformaEnNumero preparado
+--         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
 
-descifraMensaje :: Mensaje -> Clave -> Mensaje
-descifraMensaje msg clave@(e,n) = restaurarTexto numero
-    where
-        preparado = prepararTexto msg
-        mensaje = toInteger $ transformaEnNumero preparado
-        numero = digitos $ fromInteger $ exponenentesMod mensaje e n
+-- descifraMensaje :: Mensaje -> Clave -> Mensaje
+-- descifraMensaje msg clave@(e,n) = restaurarTexto numero
+--     where
+--         preparado = prepararTexto msg
+--         mensaje = toInteger $ transformaEnNumero preparado
+--         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
         
+-------------------------------------------------------------------
 
 -- Alternativa poco segura: 
 

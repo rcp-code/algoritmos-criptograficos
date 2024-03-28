@@ -66,7 +66,8 @@ cambioABase2 :: (Integral a, Num a) => a -> [a]
 cambioABase2 num = cambioABase2' num []
     where
         cambioABase2' num listaRestos
-            | num < 2 = L.reverse (1:listaRestos)                               --se da la vuelta a la lista de restos y se añade un 1 al comienzo al llegar a 1
+            | num == 0 = 0:listaRestos
+            | num == 1 = 1:listaRestos
             | otherwise = cambioABase2' (div num 2) (mod num 2:listaRestos)     --se añade el resto a la lista de los restos ya calculados  
 
 cambioABase2Lista :: (Integral a, Num a) => [a] -> [[a]]
@@ -79,74 +80,37 @@ deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
         ps = [0..tam-1]
         union = L.zip ns (L.reverse ps)
 
----
-
--- -- Convierte un número en binario a su representación de texto
--- binarioATexto :: Int -> Mensaje
--- binarioATexto numero
---   | numero == 0 = "0"
---   | otherwise = reverse $ unfoldr (\x -> if x == 0 then Nothing else Just (intToChar (x .&. 0xFF), x `shiftR` 8)) numero
-
--- binarioATexto' :: Int -> String
--- binarioATexto' numBinario
---   | numBinario == 0 = "0"
---   | otherwise = reverse $ unfoldr (\x -> if x == 0 then Nothing else Just (chr (fromIntegral (x .&. 0xFF)), x `shiftR` 8)) numBinario
-
--- -- Convierte un entero a un carácter
--- intToChar :: Int -> Char
--- intToChar = chr . fromIntegral
-
-
--- Tamaño de bits de un bloque de texto:
-compruebaTamBits :: Mensaje -> Int
-compruebaTamBits msg = finiteBitSize (traduceTextoABinario msg)
-
-traduceTextoABinario :: Mensaje -> Int
-traduceTextoABinario = P.foldl (\acc c -> (acc `shiftL` 8) .|. ord c) 0
-
-traduceTextoABinario' :: Mensaje -> [Bool]
-traduceTextoABinario' = L.concatMap caracteresABits
-  where
-    caracteresABits c = L.reverse [testBit (ord c) i | i <- [0..7]]
-
--- Convierte una lista de bits a su representación de texto
-binarioATexto :: [Bool] -> Mensaje
-binarioATexto = L.unfoldr (\x -> if L.null x then Nothing else Just (chr (bitsAByte (L.take 8 x)), L.drop 8 x))
-
 -- Convierte una lista de bits a un byte
-bitsAByte :: [Bool] -> Int
-bitsAByte = L.foldl (\acc b -> acc * 2 + fromEnum b) 0
+-- bitsAByte :: [Bool] -> Int
+-- bitsAByte = L.foldl (\acc b -> acc * 2 + fromEnum b) 0
 
--- Convierte una lista de bits a un número entero
-deBitsAInt :: [Bool] -> Int
-deBitsAInt = L.foldl (\acc b -> acc `shiftL` 1 .|. fromEnum b) 0
+-- -- Convierte una lista de bits a un número entero
+-- deBitsAInt :: [Bool] -> Int
+-- deBitsAInt = L.foldl (\acc b -> acc `shiftL` 1 .|. fromEnum b) 0
 
 -- Transforma un número entero a una lista de bits
-deIntABits :: Int -> [Bool]
-deIntABits n = L.reverse [testBit n i | i <- [0..finiteBitSize n - 1]]
+deIntA8Bits :: Int -> [Int]
+deIntA8Bits n = L.reverse $ L.take 8 [convierteACerosYUnos (testBit n i) | i <- [0..finiteBitSize n - 1]]
+
+convierteACerosYUnos :: Bool -> Int
+convierteACerosYUnos b = if b then 1 else 0
 
 ---
-
-deStringAInt :: String -> Int
-deStringAInt [] = 0
-deStringAInt c@(s:ss)
-    | s == '-' = (-1) * deStringAInt ss
-    | otherwise = (digitToInt s * 10 ^ (L.length c - 1)) + deStringAInt ss
 
     {----------------------------------------------------------------------
                         Tratamiento de datos
     ----------------------------------------------------------------------}
 
 --Obtiene el primer elemento de una tupla de tres elementos
-fst' :: (Num a, Num b, Num c) => (a, b, c) -> a
+fst' :: (a, b, c) -> a
 fst' (val1, val2, val3) = val1
 
 --Obtiene el segundo elemento de una tupla de tres elementos
-snd' :: (Num a, Num b, Num c) => (a, b, c) -> b
+snd' :: (a, b, c) -> b
 snd' (val1, val2, val3) = val2
 
 --Obtiene el tercer elemento de una tupla de tres elementos
-trd' :: (Num a, Num b, Num c) => (a, b, c) -> c
+trd' :: (a, b, c) -> c
 trd' (val1, val2, val3) = val3
 
 -- Obtiene el primer elemento de un "objeto" de tipo Tripleta
@@ -188,7 +152,7 @@ slicing' [] _ _ _ = []
 slicing' lista inicio fin aux
     | fin>=inicio = slicing' lista inicio (fin - 1) (e:aux)
     | otherwise = aux
-    where 
+    where
         e = lista !! fin
 
 numeroDigitos :: Int -> Int

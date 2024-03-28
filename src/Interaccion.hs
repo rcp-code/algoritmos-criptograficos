@@ -9,7 +9,7 @@ import Tipos
 import Constantes
 import CifradoBloque
 ---
-import Data.List as L
+import Data.List
 import System.Random
 import System.IO
 
@@ -17,26 +17,22 @@ mainInteraccion :: IO ()
 mainInteraccion = do
     imprime "Cargando..."
     principal
-    --pruebaAutomataSO
-    --pruebaAutomataSOAleatorio
-    --obtieneNumAleatorio'
-    --compruebaTamanoBitsTexto
-    --compruebaFuncionamientoTransformacionesTexto
-    --mainDepuracion
-    --mainDepuracion2
     imprime "Fin de la ejecución."
 
 principal :: IO ()
 principal = do
     imprime "Advertencia: el programa puede tardar unos segundos en generar los primos."
-    algoritmoRSA
+    --algoritmoRSA
+    --cifradoBloqueACSOSimplificado
+    cifradoBloqueACSO
     -- imprime "¿Qué algoritmo desea aplicar: RSA, Cifrado de bloques (bloque) o XXX? "
     -- opcion <- leeMensaje
     -- if opcion == "RSA" || opcion=="rsa" then do
-    --     imprime "Se está ejecutando el algoritmo RSA..."
+    --     imprime "Se está ejecutando RSA..."
     --     algoritmoRSA
     -- else if opcion == "Cifrado de bloques" || opcion=="bloque" then do
-    --     imprime "Se está ejecutando otro algoritmo..."
+    --     imprime "Se está ejecutando Cifrado de bloques basado en AC de segundo orden..."
+    --     cifradoBloqueACSO
     -- else do
     --     imprime "No se ha seleccionado una opción válida."
     imprime "Fin de la ejecución de principal."
@@ -57,8 +53,8 @@ obtienePrimoAleatorio = do
     -- imprime $ show $ L.genericLength automata
     -- imprime "La mitad es: "
     -- imprime $ show (div (L.genericLength automata) 2)
-    let indices = [1..L.genericLength automata-1]
-    let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
+    let indices = [1..genericLength automata-1]
+    let listaCentros = concat [c | (c,i)<-zip automata indices, i==div (genericLength automata) 2]
     -- imprime "La lista de centros es: "
     -- imprime $ show listaCentros
     let num = deListaBinarioANum listaCentros
@@ -94,27 +90,97 @@ algoritmoRSA = do
     imprime $ show clavePrivada
     imprime "Introduce el mensaje que se va a cifrar:"
     msg <- leeMensaje
-    --let msg = "Lorem ipsum dolor sit amet consectetur adipiscing elit ornare mattis et, ad parturient eu nec eleifend mollis tincidunt facilisi ligula tortor nostra, quam torquent sollicitudin rutrum interdum dignissim duis nulla posuere. Accumsan etiam donec leo lacus sollicitudin nostra nec eu, enim natoque inceptos dui mus proin sapien ridiculus cursus, potenti senectus ac molestie facilisis iaculis phasellus. Integer ac tristique inceptos at malesuada fermentum blandit nullam, id consequat urna potenti praesent senectus dis cum, dictum libero lobortis vehicula tincidunt habitasse augue. Faucibus venenatis nisl sapien rutrum morbi porta ac metus a, eget nullam viverra suspendisse mus penatibus suscipit egestas nostra ridiculus, in consequat porttitor turpis sodales orci massa sociis. Aliquam varius hendrerit pretium posuere cum consequat felis habitasse tristique, nisl aenean auctor est curae pharetra tellus nec litora, ullamcorper vivamus nulla suspendisse class laoreet cubilia orci. Nostra rhoncus vestibulum sociis bibendum luctus accumsan pretium, maecenas pulvinar magnis volutpat potenti sollicitudin sodales turpis, lobortis leo convallis proin phasellus cum."
     imprime "El mensaje que va a cifrarse es el siguiente:"
     imprime msg
-    --
-    -- let mensajeCifrado = encriptaRSA msg clavePublica
-    -- imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
-    -- --imprime $ show (fst mensajeCifrado)
-    -- imprime $ show mensajeCifrado
-    -- imprime "Se va a proceder con el descifrado del mensaje..."
-    -- let mensajeOriginal  = desencriptaRSA mensajeCifrado clavePrivada
-    -- imprime "El mensaje se ha descifrado y es el siguiente: "
-    -- imprime $ show mensajeOriginal
-    --
-    let mensajeCifrado = cifraMensaje msg clavePublica
+    let mensajeCifrado = cifraRSA msg clavePublica 
     imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
-    --imprime $ show (fst mensajeCifrado)
-    imprime $ show mensajeCifrado
+    imprime mensajeCifrado
     imprime "Se va a proceder con el descifrado del mensaje..."
-    let mensajeOriginal  = descifraMensaje mensajeCifrado clavePrivada
-    imprime "El mensaje se ha descifrado y es el siguiente: "
+    let mensajeOriginal = descifraRSA mensajeCifrado clavePrivada 
+    imprime "El mensaje se ha descifrado y es el siguiente:"
     imprime $ show mensajeOriginal
+    imprime "Fin del algoritmo RSA."
+
+cifradoBloqueACSOSimplificado :: IO()
+cifradoBloqueACSOSimplificado = do
+    imprime "Introduce el mensaje que quieras cifrar: "
+    mensaje <- leeMensaje
+    semilla <- now
+    numero <- obtieneNumAleatorio
+    let clavePrivada = deListaBinarioANum $ take 8 $ concat $ cambioABase2Lista $ digitos numero
+    let textoABin = transformaTextoEnBinario mensaje
+    let textoABinario = agregaCerosAIzquierda textoABin 8
+    putStr "Se va a cifrar el mensaje: "
+    imprime mensaje
+    imprime "Comienzo del proceso de cifrado y descifrado..."
+    semilla' <- now
+    let inicial = inicializaACSegundoOrden numBits (datosInicialesAleatorios semilla') textoABinario
+    let cifrado = versionSimplificadaCifrado clavePrivada inicial reglaAC 1 numPasos
+    let binario8Bits = parte 8 (primero cifrado)
+    let textoCifrado = transformaBinarioEnTexto binario8Bits
+    imprime "Se va a proceder con el descifrado: "
+    let binarioDescifrado = ultimo $ versionSimplificadaDescifrado clavePrivada cifrado reglaAC 2 numPasos
+    let binarioDescifrado8Bits = parte 8 binarioDescifrado
+    let textoDescifrado = transformaBinarioEnTexto binarioDescifrado8Bits
+    putStr "El texto descifrado es: "
+    imprime textoDescifrado
+    imprime "¿El texto que se ha descifrado corresponde con el original?"
+    if mensaje==textoDescifrado then do
+        imprime "Sí."
+    else do
+        imprime "No."
+    imprime "Fin del cifrado de bloques basado en autámatas celulares de segundo orden."
+
+cifradoBloqueACSO :: IO ()
+cifradoBloqueACSO = do
+    imprime "Introduce el mensaje que quieras cifrar: "
+    mensaje <- leeMensaje
+    semilla <- now
+    let clavePrivada = take 224 $ concat $ cambioABase2Lista $ generaAleatoriosL semilla
+    let textoABinario = bloques64Bits $ transformaTextoEnBinario mensaje
+    putStr "Se va a cifrar el mensaje: "
+    imprime mensaje
+    imprime "Comienzo del proceso de cifrado y descifrado..."
+    if length (ultimo textoABinario) < numBits then do
+        let subLista = agregaCerosAIzquierda (ultimo textoABinario) numBits
+        let textoABinario' = init textoABinario ++ [subLista]
+        semilla' <- now
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numPasosCifrado clavePrivada textoABinario reglaAC
+        let textoCifrado = transformaBinarioEnTexto $ fst' tripletaCifradoCASAleatoriosFinal
+        putStr "El texto cifrado es: "
+        imprime textoCifrado
+        imprime "Se va a proceder con el descifrado: "
+        let binarioDescifrado = descifrado semilla numPasosCifrado clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
+        putStr "El texto descifrado es: "
+        imprime textoDescifrado
+        imprime "¿El texto que se ha descifrado corresponde con el original?"
+        if mensaje==textoDescifrado then do
+            imprime "Sí."
+        else do
+            imprime "No."
+        imprime "Fin de la ejecución"
+    else do
+        semilla' <- now
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numPasosCifrado clavePrivada textoABinario reglaAC
+        let textoCifrado = transformaBinarioEnTexto $ fst' tripletaCifradoCASAleatoriosFinal
+        putStr "El texto cifrado es: "
+        imprime textoCifrado
+        imprime "Se va a proceder con el descifrado: "
+        let binarioDescifrado = descifrado semilla numPasosCifrado clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
+        putStr "El texto descifrado es: "
+        imprime textoDescifrado
+        imprime "¿El texto que se ha descifrado corresponde con el original?"
+        if mensaje==textoDescifrado then do
+            imprime "Sí."
+        else do
+            imprime "No."
+    imprime "Fin de la ejecución"
+
+
+
+
 
 
 
@@ -131,8 +197,8 @@ obtieneNumAleatorio = do
     let listaAleatoriosBase2 = concat (cambioABase2Lista listaAleatorios)
     let inicia = iniciaAC numCeldas listaAleatoriosBase2
     let automata = generaAC numCeldas (regla 30) inicia
-    let indices = [1..L.genericLength automata-1]
-    let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
+    let indices = [1..genericLength automata-1]
+    let listaCentros = concat [c | (c,i)<-zip automata indices, i==div (genericLength automata) 2]
     let num = deListaBinarioANum listaCentros
     putStr "Número aleatorio seleccionado: "
     imprime $ show num
@@ -152,8 +218,8 @@ obtieneNumAleatorio' = do
     let listaAleatoriosBase2' = concat (cambioABase2Lista listaAleatorios2)
     let inicia = inicializacion numCeldas listaAleatoriosBase2 listaAleatoriosBase2'
     let automata = generaACSO 30 1 numPasos inicia
-    let indices = [1..L.genericLength automata-1]
-    let listaCentros = L.concat [c | (c,i)<-zip automata indices, i==div (L.genericLength automata) 2]
+    let indices = [1..genericLength automata-1]
+    let listaCentros = concat [c | (c,i)<-zip automata indices, i==div (genericLength automata) 2]
     let num = deListaBinarioANum listaCentros
     putStr "Número aleatorio seleccionado: "
     imprime $ show num
@@ -190,78 +256,78 @@ pruebaAutomataSOAleatorio = do
                         Otras pruebas de funcionamiento
     ----------------------------------------------------------------------}
 
-compruebaTamanoBitsTexto :: IO ()
-compruebaTamanoBitsTexto = do
-    imprime "Introduce el texto: "
-    msg <- leeMensaje
-    let tam = compruebaTamBits msg
-    putStr "El tamaño del texto es: "
-    imprime $ show tam
+-- compruebaTamanoBitsTexto :: IO ()
+-- compruebaTamanoBitsTexto = do
+--     imprime "Introduce el texto: "
+--     msg <- leeMensaje
+--     let tam = compruebaTamBits msg
+--     putStr "El tamaño del texto es: "
+--     imprime $ show tam
 
-compruebaFuncionamientoTransformacionesTexto :: IO ()
-compruebaFuncionamientoTransformacionesTexto = do
-    imprime "Ahora vamos a ver cómo se traduce el texto..."
-    let mensajeOriginal = "Hola, mundo"
-    let bits = traduceTextoABinario' mensajeOriginal
-    let mensajeRecuperado = binarioATexto bits
-    putStrLn $ "Mensaje original: " ++ mensajeOriginal
-    putStrLn $ "Texto transformado: " ++ show bits
-    putStrLn $ "Mensaje recuperado: " ++ mensajeRecuperado
-    imprime "A continuación vamos a probar si funciona bien al meter el texto por teclado."
-    imprime "Introduce el texto: "
-    msg <- leeMensaje
-    let bits' = traduceTextoABinario' msg
-    let mensajeRecuperado' = binarioATexto bits'
-    putStrLn $ "Mensaje original: " ++ msg
-    putStrLn $ "Texto transformado: " ++ show bits'
-    putStrLn $ "Mensaje recuperado: " ++ mensajeRecuperado'
+-- compruebaFuncionamientoTransformacionesTexto :: IO ()
+-- compruebaFuncionamientoTransformacionesTexto = do
+--     imprime "Ahora vamos a ver cómo se traduce el texto..."
+--     let mensajeOriginal = "Hola, mundo"
+--     let bits = traduceTextoABinario' mensajeOriginal
+--     let mensajeRecuperado = binarioATexto bits
+--     putStrLn $ "Mensaje original: " ++ mensajeOriginal
+--     putStrLn $ "Texto transformado: " ++ show bits
+--     putStrLn $ "Mensaje recuperado: " ++ mensajeRecuperado
+--     imprime "A continuación vamos a probar si funciona bien al meter el texto por teclado."
+--     imprime "Introduce el texto: "
+--     msg <- leeMensaje
+--     let bits' = traduceTextoABinario' msg
+--     let mensajeRecuperado' = binarioATexto bits'
+--     putStrLn $ "Mensaje original: " ++ msg
+--     putStrLn $ "Texto transformado: " ++ show bits'
+--     putStrLn $ "Mensaje recuperado: " ++ mensajeRecuperado'
 
-mainDepuracion :: IO ()
-mainDepuracion = do
-    p <- obtienePrimoAleatorio
-    q <- obtienePrimoAleatorio
-    let tuplaPrimos = introduceEnTupla (toInteger p) (toInteger q)
-    putStr "Los primos p y q son los siguientes: "
-    imprime $ show tuplaPrimos
-    let n = calculoN tuplaPrimos
-    let phiN = calculoPhi (toInteger p) (toInteger q)
-    let clavesPublicaYPriv = clavesPublicaYPrivada tuplaPrimos
-    let clavePublica = parPublico clavesPublicaYPriv               --obtiene la clave pública
-    let clavePrivada = parPrivado clavesPublicaYPriv              --obtiene la clave privada
-    -- imprime "Introduce el mensaje a cifrar: "
-    -- mensajeOriginal <- leeMensaje
-    let mensajeOriginal = "Hola, mundo"
-    putStr "El mensaje que se va a encriptar es: "
-    imprime mensajeOriginal
-    let mensajeCifrado = cifraRSA mensajeOriginal clavePublica
-    let mensajeDescifrado = descifraRSA mensajeCifrado clavePublica
-    putStrLn $ "Mensaje Original: " ++ mensajeOriginal
-    putStrLn $ "Representación Original: " ++ mostrarRepresentacion mensajeOriginal
-    putStrLn $ "Representación Numérica: " ++ mostrarRepresentacionNumerica mensajeOriginal
-    putStrLn $ "Mensaje Encriptado: " ++ mensajeCifrado
-    putStrLn $ "Mensaje Desencriptado: " ++ mensajeDescifrado
-    putStrLn $ "Representación Desencriptada: " ++ mostrarRepresentacion mensajeDescifrado
-    putStrLn $ "Representación Numérica Desencriptada: " ++ mostrarRepresentacionNumerica mensajeDescifrado
+-- mainDepuracion :: IO ()
+-- mainDepuracion = do
+--     p <- obtienePrimoAleatorio
+--     q <- obtienePrimoAleatorio
+--     let tuplaPrimos = introduceEnTupla (toInteger p) (toInteger q)
+--     putStr "Los primos p y q son los siguientes: "
+--     imprime $ show tuplaPrimos
+--     let n = calculoN tuplaPrimos
+--     let phiN = calculoPhi (toInteger p) (toInteger q)
+--     let clavesPublicaYPriv = clavesPublicaYPrivada tuplaPrimos
+--     let clavePublica = parPublico clavesPublicaYPriv               --obtiene la clave pública
+--     let clavePrivada = parPrivado clavesPublicaYPriv              --obtiene la clave privada
+--     -- imprime "Introduce el mensaje a cifrar: "
+--     -- mensajeOriginal <- leeMensaje
+--     let mensajeOriginal = "Hola, mundo"
+--     putStr "El mensaje que se va a encriptar es: "
+--     imprime mensajeOriginal
+--     let mensajeCifrado = cifraRSA mensajeOriginal clavePublica
+--     let mensajeDescifrado = descifraRSA mensajeCifrado clavePublica
+--     putStrLn $ "Mensaje Original: " ++ mensajeOriginal
+--     putStrLn $ "Representación Original: " ++ mostrarRepresentacion mensajeOriginal
+--     putStrLn $ "Representación Numérica: " ++ mostrarRepresentacionNumerica mensajeOriginal
+--     putStrLn $ "Mensaje Encriptado: " ++ mensajeCifrado
+--     putStrLn $ "Mensaje Desencriptado: " ++ mensajeDescifrado
+--     putStrLn $ "Representación Desencriptada: " ++ mostrarRepresentacion mensajeDescifrado
+--     putStrLn $ "Representación Numérica Desencriptada: " ++ mostrarRepresentacionNumerica mensajeDescifrado
 
-mainDepuracion2 :: IO ()
-mainDepuracion2 = do
-    p <- obtienePrimoAleatorio
-    q <- obtienePrimoAleatorio
-    let tuplaPrimos = introduceEnTupla (toInteger p) (toInteger q)
-    let n = calculoN tuplaPrimos
-    let phiN = calculoPhi (toInteger p) (toInteger q)
-    imprime "Se van a generar la clave pública y la clave privada de RSA. Esta operación puede tardar."
-    let clavesPublicaYPriv = clavesPublicaYPrivada tuplaPrimos
-    let clavePublica = parPublico clavesPublicaYPriv               --obtiene la clave pública
-    let clavePrivada = parPrivado clavesPublicaYPriv
-    imprime "Se ha configurado las claves privada y pública."
-    imprime "Introduce un mensaje: "
-    mensajeOriginal <- leeMensaje
-    putStr "El mensaje que se va a encriptar es: "
-    imprime mensajeOriginal
-    let mensajeCifrado = cifraMensaje mensajeOriginal clavePublica
-    imprime "El mensaje se ha cifrado:"
-    imprime mensajeCifrado
-    let mensajeDescifrado = descifraMensaje mensajeCifrado clavePrivada
-    imprime "El mensaje se ha descifrado:"
-    imprime mensajeDescifrado
+-- mainDepuracion2 :: IO ()
+-- mainDepuracion2 = do
+--     p <- obtienePrimoAleatorio
+--     q <- obtienePrimoAleatorio
+--     let tuplaPrimos = introduceEnTupla (toInteger p) (toInteger q)
+--     let n = calculoN tuplaPrimos
+--     let phiN = calculoPhi (toInteger p) (toInteger q)
+--     imprime "Se van a generar la clave pública y la clave privada de RSA. Esta operación puede tardar."
+--     let clavesPublicaYPriv = clavesPublicaYPrivada tuplaPrimos
+--     let clavePublica = parPublico clavesPublicaYPriv               --obtiene la clave pública
+--     let clavePrivada = parPrivado clavesPublicaYPriv
+--     imprime "Se ha configurado las claves privada y pública."
+--     imprime "Introduce un mensaje: "
+--     mensajeOriginal <- leeMensaje
+--     putStr "El mensaje que se va a encriptar es: "
+--     imprime mensajeOriginal
+--     let mensajeCifrado = cifraMensaje mensajeOriginal clavePublica
+--     imprime "El mensaje se ha cifrado:"
+--     imprime mensajeCifrado
+--     let mensajeDescifrado = descifraMensaje mensajeCifrado clavePrivada
+--     imprime "El mensaje se ha descifrado:"
+--     imprime mensajeDescifrado
