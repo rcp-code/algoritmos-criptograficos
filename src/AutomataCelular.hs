@@ -34,7 +34,7 @@ vista (Cycle n _ cen der) = Inf.take n (cen:::der)
 
 --Transforma una lista en un ciclo
 deListaACiclo :: [a] -> Cycle a
-deListaACiclo []  = let a = a in Cycle 0 a a (Inf.repeat a)      
+deListaACiclo []  = let a = a in Cycle 0 a a (Inf.repeat a)
 deListaACiclo lista = let cel:::der = Inf.cycle lista in Cycle (P.length lista) (P.last lista) cel der
 
     {-------------------------------------------------------------------------
@@ -120,49 +120,26 @@ reglaVecindadTres r izq3 izq2 izq1 cen der1 der2 der3 = r `div` (2^(7* izq3 + 6*
 aplicaReglaSO :: Int -> Int -> [Int] -> [Int] -> [Int]
 aplicaReglaSO r radio anteriores celdas
     | radio==1 = primeraCelda1 : [abs $ regla r (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) - (anteriores !! i) | i <- [1..L.length celdas - 2]] L.++ [ultimaCelda1]
-    | radio==2 = primeraCelda2 : segundaCelda2 : [abs $ reglaVecindadDos r (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) - (anteriores !! i) | i <- [2..L.length celdas - 4]] L.++ [penultimaCelda2] L.++ [ultimaCelda2]
-    | radio==3 = primeraCelda3 : segundaCelda3 : terceraCelda3 : [abs $ reglaVecindadTres r (celdas !! (i - 3)) (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) (celdas !! (i + 3)) - (anteriores !! i) | i <- [3..L.length celdas - 6]] L.++ [antepenultimaCelda3] L.++ [penultimaCelda2] L.++ [ultimaCelda3]
-    | otherwise = error "El radio definido no está entre 1 y 3."
+    | radio==2 = primeraCelda2 : segundaCelda2 : [abs $ reglaVecindadDos r (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) - (anteriores !! i) | i <- [2..L.length celdas - 4]] L.++ [penultimaCelda2, ultimaCelda2]
+    | radio==3 = primeraCelda3 : segundaCelda3 : terceraCelda3 : [abs $ reglaVecindadTres r (celdas !! (i - 3)) (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) (celdas !! (i + 3)) - (anteriores !! i) | i <- [3..L.length celdas - 6]] L.++ [antepenultimaCelda3, penultimaCelda3, ultimaCelda3]
+    | otherwise = error "El radio especificado no es correcto."
     where
         -- Primera y última celda para radio 1 de vecindad:
         primeraCelda1 = abs $ regla r (ultimo celdas) (primero celdas) (primero (L.tail celdas)) - primero anteriores
         ultimaCelda1 = abs $ regla r (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) - ultimo anteriores
         -- Primera, segunda, penúltima y última celda para radio 2 de vecindad:
-        primeraCelda2 = abs $ reglaVecindadDos r (ultimo celdas) (primero celdas) (primero (L.tail celdas)) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero (L.tail anteriores)
-        segundaCelda2 = abs $ reglaVecindadDos r (primero celdas) (primero (L.tail celdas)) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) - L.tail anteriores !! 1
-        penultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) - ultimo (L.init anteriores)
-        ultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! (tamLista celdas - 3)) (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) (primero (L.tail celdas)) - ultimo anteriores
-        -- Celdas de la frontera para radio 2 de vecindad:
-        primeraCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero anteriores
+        primeraCelda2 = abs $ reglaVecindadDos r (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) - primero anteriores
+        segundaCelda2 = abs $ reglaVecindadDos r (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero (L.tail anteriores)
+        penultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) - ultimo (L.init anteriores)
+        ultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) - ultimo anteriores
+        -- Celdas de la frontera para radio 3 de vecindad:
+        primeraCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero anteriores
         segundaCelda3 = abs $ reglaVecindadTres r (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) - primero (L.tail anteriores)
         terceraCelda3 = abs $ reglaVecindadTres r (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) (L.tail celdas !! 4) - L.tail anteriores !! 1
-        antepenultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 6)) (L.init celdas !! (tamLista celdas - 5)) (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) - L.init anteriores !! (tamLista anteriores - 3)
-        penultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 5)) (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) - ultimo (L.init anteriores)
-        ultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) - ultimo anteriores
-
--- Aplica la regla (normal) especificada para vecindades 1, 2 y 3 (no es necesario):
--- aplicaRegla :: Int -> Int -> [Int] -> [Int]
--- aplicaRegla r radio celdas
---   | radio==1 = primeraCelda1 : [abs $ regla r (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) | i <- [radio..L.length celdas - radio - 1]] L.++ [ultimaCelda1]
---   | radio==2 = primeraCelda2 : segundaCelda2 : [abs $ reglaVecindadDos r (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) | i <- [2..L.length celdas - 4]] L.++ [penultimaCelda2] L.++ [ultimaCelda2]
---   | radio==3 = primeraCelda3 : segundaCelda3 : terceraCelda3 : [abs $ reglaVecindadTres r (celdas !! (i - 3)) (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) (celdas !! (i + 3)) | i <- [3..L.length celdas - 6]] L.++ [antepenultimaCelda3] L.++ [penultimaCelda2] L.++ [ultimaCelda3]
---     where
---         -- Primera y última celda para radio 1 de vecindad:
---         primeraCelda1 = abs $ regla r (ultimo celdas) (primero celdas) (primero (L.tail celdas))
---         ultimaCelda1 = abs $ regla r (ultimo (L.init celdas)) (ultimo celdas) (primero celdas)
---         -- Primera, segunda, penúltima y última celda para radio 2 de vecindad:
---         primeraCelda2 = abs $ reglaVecindadDos r (ultimo celdas) (primero celdas) (primero (L.tail celdas)) (L.tail celdas !! 1) (L.tail celdas !! 2)
---         segundaCelda2 = abs $ reglaVecindadDos r (primero celdas) (primero (L.tail celdas)) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3)
---         penultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo (L.init celdas)) (ultimo celdas) (primero celdas)
---         ultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! (tamLista celdas - 3)) (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) (primero (L.tail celdas))
---         -- Celdas de la frontera para radio 2 de vecindad:
---         primeraCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2)
---         segundaCelda3 = abs $ reglaVecindadTres r (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3)
---         terceraCelda3 = abs $ reglaVecindadTres r (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) (L.tail celdas !! 4)
---         antepenultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 6)) (L.init celdas !! (tamLista celdas - 5)) (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas)
---         penultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 5)) (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas)
---         ultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! (tamLista celdas - 4)) (L.init celdas !! (tamLista celdas - 3)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1)
-
+        antepenultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 3) (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) - L.init anteriores !! tamLista (L.init anteriores)
+        penultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) - ultimo (L.init anteriores)
+        ultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) - ultimo anteriores
+        
 -- Realiza un paso de la evolución del AC de segundo orden:
 unPaso :: Int -> Int -> CycleSO Int -> CycleSO Int
 unPaso reg radio ciclo@(CycleSO _ pasado presente) = CycleSO {pasado=nuevoPasado, presente=nuevaVecindad}

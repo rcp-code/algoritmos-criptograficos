@@ -5,19 +5,23 @@ module Constantes where
     ----------------------------------------------------------------------}
 
 import Data.List
+import UtilIO
 
     {----------------------------------------------------------------------
                         Constantes para cifrado
     ----------------------------------------------------------------------}
 
 caracteres :: String
-caracteres = ' ' : ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['.',',']
+caracteres = ' ' : ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['.',',','!','?']
 
 numeros :: [Int]
 numeros = [10..]
 
 asociaciones :: [(Char, Int)]
 asociaciones = zip caracteres numeros
+
+ultimoCaracterAsociaciones :: Int
+ultimoCaracterAsociaciones = snd $ last asociaciones
 
     {----------------------------------------------------------------------
                     Constantes de autómatas celulares
@@ -41,13 +45,17 @@ reglaAC = 30
 pasosEvolucion :: Int
 pasosEvolucion = 10
 
-numPasosCALR, numPasosCAC, numPasosCAS :: Int
+numPasosCALR :: Int
 numPasosCALR = 5
+
+numPasosCAC :: Int 
 numPasosCAC = 7
+
+numPasosCAS :: Int
 numPasosCAS = 10
 
-numPasosCifrado :: Int
-numPasosCifrado = 10
+numeroRondas :: Int
+numeroRondas = 10
 
 numBits :: Int
 numBits = 64

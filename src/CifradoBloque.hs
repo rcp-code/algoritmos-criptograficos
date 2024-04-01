@@ -133,13 +133,13 @@ rondaTransformaciones :: [[Int]] -> [[Int]] -> [Int] -> Int -> ([[Int]], [[Int]]
 rondaTransformaciones datosCAS inicial clave regla = ([q0Final', q1Final'], nuevoInicioCAS')
     where
         datosInicialesAleatorios = primero inicial
-        bloqueTextoPlano = ultimo inicial
+        bloqueTextoClaro = ultimo inicial
         parteClaveCAL = slicing clave 0 31
         parteClaveCAR = slicing clave 32 63
         parteClaveCAC = slicing clave 64 191
         parteClaveCAS = divideEnDosSubBloques $ slicing clave 192 223
         subBloquesAleatorios = divideEnDosSubBloques datosInicialesAleatorios
-        subBloquesTextoPlano = divideEnDosSubBloques bloqueTextoPlano
+        subBloquesTextoPlano = divideEnDosSubBloques bloqueTextoClaro
         q0L = primero subBloquesAleatorios
         q0R = ultimo subBloquesAleatorios
         q1L = primero subBloquesTextoPlano
@@ -176,40 +176,42 @@ rondaTransformaciones datosCAS inicial clave regla = ([q0Final', q1Final'], nuev
         q0Final' = xorl parteClaveCAC q0Final
         q1Final' = xorl parteClaveCAC q1Final
 
-
 -- n: rondas a las que se van a someter los datos iniciales y el texto plano para el cifrado
 nrondas :: Int -> Int -> [Int] -> [[Int]] -> Int -> ([[Int]], [[Int]])
-nrondas semilla n clave inicial regla = nrondas' semilla n clave datosCAS inicial regla []
+nrondas semilla rondas clave inicial regla = nrondas' rondas clave datosCAS inicial regla []
     where
         listaAleatorios1 = take 16 $ generaAleatoriosL semilla
         listaAleatorios2 = take 16 $ generaAleatoriosL semilla
         datosCAS = [listaAleatorios1, listaAleatorios2]
 
-nrondas' :: Int -> Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]] -> ([[Int]], [[Int]])
-nrondas' semilla n clave datosCAS inicial regla aux
-    | n>0 = nrondas' semilla (n-1) clave nuevosDatosCAS resultadoFinRonda regla (aux ++ resultadoFinRonda)
-    | otherwise = ([aux !! (tamLista aux - 2), aux !! (tamLista aux - 1)], nuevosDatosCAS)    --devuelve las dos últimas posiciones, que corresponden al cifrado y a los datos datosInicialesAleatorios
+nrondas' :: Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]] -> ([[Int]], [[Int]])
+nrondas' rondas clave datosCAS inicial regla aux
+    | rondas==0 = ([aux !! (tamLista aux - 2), aux !! (tamLista aux - 1)], nuevosDatosCAS) --texto descifrado, datos aleatorios/residuales, nuevos datos aleatorios para el CAS
+    | rondas>0 = nrondas' (rondas-1) clave nuevosDatosCAS resultadoFinRonda regla (aux ++ resultadoFinRonda)
+    | otherwise = error "Se ha producido un error al aplicar las rondas en el cifrado."
     where
         resultadosRonda = rondaTransformaciones datosCAS inicial clave regla
         resultadoFinRonda = fst resultadosRonda
         nuevosDatosCAS = snd resultadosRonda
 
 cifrado :: Int -> Int -> [Int] -> [[Int]] -> Int -> ([[Int]], [[Int]], [Int])
-cifrado semilla n clave bloqueTextoPlano regla = cifrado' semilla n clave restoBloqueTextoPlano regla (fst primerBloqueRondas)
+cifrado semilla rondas clave bloqueTextoClaro regla = cifrado' semilla rondas clave restoBloqueTextoPlano regla numeroRondasCifrado (fst primerBloqueRondas)
     where
-        tamMaximoAC = tamLista $ primero bloqueTextoPlano
+        numeroRondasCifrado = length bloqueTextoClaro
+        tamMaximoAC = tamLista $ primero bloqueTextoClaro
         datosInicialesAleatorios = take tamMaximoAC $ generaAleatoriosL semilla
-        inicial = [primero bloqueTextoPlano, datosInicialesAleatorios]
-        primerBloqueRondas = nrondas semilla n clave inicial regla
-        restoBloqueTextoPlano = tail bloqueTextoPlano
+        inicial = [primero bloqueTextoClaro, datosInicialesAleatorios]
+        primerBloqueRondas = nrondas semilla rondas clave inicial regla
+        restoBloqueTextoPlano = tail bloqueTextoClaro
 
-cifrado' :: Int -> Int -> [Int] -> [[Int]] -> Int -> [[Int]] -> ([[Int]], [[Int]], [Int])
-cifrado' semilla n clave bloqueTextoPlano regla aux
-    | n>0 = cifrado' semilla n clave (tail bloqueTextoPlano) regla (fst bloqueRondas ++ aux)
-    | otherwise = ([lista | (lista, i)<-zip aux [1..tamLista aux], odd i], snd bloqueRondas, ultimo aux)  -- al final devuelve el par con el texto cifrado y los datos finales aleatorios
+cifrado' :: Int -> Int -> [Int] -> [[Int]] -> Int -> Int -> [[Int]] -> ([[Int]], [[Int]], [Int])
+cifrado' semilla rondas clave bloqueTextoClaro regla n aux
+    | n==0 || null bloqueTextoClaro = ([lista | (lista, i)<-zip aux [1..tamLista aux], even i], snd bloqueRondas, ultimo aux)
+    | n>0 = cifrado' semilla rondas clave (tail bloqueTextoClaro) regla (n-1) (fst bloqueRondas ++ aux)
+    | otherwise = error "Se ha producido un error al realizar el cifrado."
     where
-        inicial = [primero bloqueTextoPlano, ultimo aux]
-        bloqueRondas = nrondas semilla n clave inicial regla
+        inicial = [primero bloqueTextoClaro, primero $ tail aux]
+        bloqueRondas = nrondas semilla rondas clave inicial regla
 
     {----------------------------------------------------------------------
                                 Descifrado
@@ -221,83 +223,84 @@ cifrado' semilla n clave bloqueTextoPlano regla aux
 
 -- Devuelve un par con dos listas de listas: el primer elemento está compuesto por la penúltima fila del AC y el segundo está compuesto por la última fila del AC
 cacInverso :: Int -> Int -> [Int] -> [Int] -> ([[Int]], [[Int]])
-cacInverso regla pasos qnC qn_1C = ([qnL', qnR'], [qn1R, qn1L])
+cacInverso regla pasos qnC qn1C = ([qnL', qnR'], [qn1R, qn1L])
     where
-        inicial = inicializacion 64 qnC qn_1C
+        inicial = inicializacion 64 qnC qn1C
         automata = generaACSO regla 3 pasos inicial
-        qn_1C = automata !! (tamLista automata - 1)
-        qnC = automata !! (tamLista automata - 2)
-        subbloque1 = divideEnDosSubBloques qnL'
-        subbloque2 = divideEnDosSubBloques qn_1C
+        qn1LR = automata !! (tamLista automata - 1)
+        qnLR = automata !! (tamLista automata - 2)
+        subbloque1 = divideEnDosSubBloques qn1LR
+        subbloque2 = divideEnDosSubBloques qnLR
         qnL' = primero subbloque2
         qn1L = ultimo subbloque1
         qnR' = ultimo subbloque2
         qn1R = primero subbloque1
 
 rondaInversaTransformaciones :: [[Int]] -> [[Int]] -> [Int] -> Int -> ([[Int]], [[Int]])
-rondaInversaTransformaciones datosCAS inicial clave regla = ([datosAleatoriosInicial, textoPlano], nuevoInicioCAS')
+rondaInversaTransformaciones datosCAS inicial clave regla = ([datosAleatoriosIniciales, textoEnClaro], nuevoInicioCAS')
     where
-        datosInicialesAleatorios = primero inicial
-        bloqueTextoCifrado = ultimo inicial
+        datosInicialesAleatorios = ultimo inicial
+        bloqueTextoCifrado = primero inicial
         parteClaveCAL = slicing clave 0 31
         parteClaveCAR = slicing clave 32 63
         parteClaveCAC = slicing clave 64 191
         parteClaveCAS = divideEnDosSubBloques $ slicing clave 192 223
         q0Final' = xorl parteClaveCAC bloqueTextoCifrado
         q1Final' = xorl parteClaveCAC datosInicialesAleatorios
-        q0XORClave = xorl q0Final' parteClaveCAL
-        q1XORClave = xorl q1Final' parteClaveCAR
-        automataCAC = cacInverso (reglaReversible 3 regla) numPasosCAC q0XORClave q1XORClave
+        automataCAC = cacInverso (reglaReversible regla 3) numPasosCAC q0Final' q1Final'
         qnL' = primero $ fst automataCAC
         qnR' = ultimo $ fst automataCAC
         qn1R = primero $ snd automataCAC
         qn1L = ultimo $ snd automataCAC
-        qn1LXORClave = xorl qn1L parteClaveCAL
-        qn1RXORClave = xorl qn1R parteClaveCAR
-        automataCAS = cas regla numPasosCAS (primero datosCAS) (ultimo datosCAS)
+        qn1LXORClave = xorl parteClaveCAL qn1L
+        qn1RXORClave = xorl parteClaveCAR qn1R
+        automataCAS = cas (reglaReversible regla 2) numPasosCAS (ultimo datosCAS) (primero datosCAS)
         numDesplazamientoBits1 = fst automataCAS
         primeraConfiguracionXORClave = xorl (primero parteClaveCAS) (primero $ snd automataCAS)
         segundaConfiguracionXORClave = xorl (ultimo parteClaveCAS) (ultimo $ snd automataCAS)
         nuevoInicioCAS = [primeraConfiguracionXORClave, segundaConfiguracionXORClave]
         qnL = desplazaBits qnL' numDesplazamientoBits1 'R'
-        automataCAS' = cas regla numPasosCAS (primero nuevoInicioCAS) (ultimo nuevoInicioCAS)
+        automataCAS' = cas (reglaReversible regla 2) numPasosCAS (ultimo nuevoInicioCAS) (primero nuevoInicioCAS)
         numDesplazamientoBits2 = fst automataCAS'
         primeraConfiguracionXORClave' = xorl (primero parteClaveCAS) (primero $ snd automataCAS')
         segundaConfiguracionXORClave' = xorl (ultimo parteClaveCAS) (ultimo $ snd automataCAS')
         nuevoInicioCAS' = [primeraConfiguracionXORClave', segundaConfiguracionXORClave']
         qnR = desplazaBits qnL' numDesplazamientoBits2 'L'
-        cal = calr regla numPasosCALR qnL qn1LXORClave
-        car = calr regla numPasosCALR qnR qn1RXORClave
-        unionq1 = ultimo cal ++ ultimo car
-        unionq0 = primero cal ++ primero car
-        datosAleatoriosInicial = unionq0
-        textoPlano = unionq1
+        cal = calr (reglaReversible regla 2) numPasosCALR qnL qn1LXORClave
+        car = calr (reglaReversible regla 2) numPasosCALR qnR qn1RXORClave
+        unionq0 = ultimo cal ++ ultimo car
+        unionq1 = primero cal ++ primero car
+        datosAleatoriosIniciales = unionq0
+        textoEnClaro = unionq1
 
-nrondasInverso :: Int -> Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]]
-nrondasInverso semilla n clave inicial datosCAS regla = nrondasInverso' semilla n clave inicial datosCAS regla []
+nrondasInverso :: Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]]
+nrondasInverso rondas clave inicial datosCAS regla = nrondasInverso' rondas clave inicial datosCAS regla []
 
-nrondasInverso' :: Int -> Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]] -> [[Int]]
-nrondasInverso' semilla n clave inicial datosCAS regla aux
-    | n>0 = nrondasInverso' semilla (n-1) clave resultadoFinRonda nuevosDatosCAS regla (resultadoFinRonda ++ aux)
-    | otherwise = [aux !! (tamLista aux - 2), aux !! (tamLista aux - 1)]    --devuelve las dos últimas posiciones, que corresponden al cifrado y a los datos datosInicialesAleatorios
+nrondasInverso' :: Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]] -> [[Int]]
+nrondasInverso' rondas clave inicial datosCAS regla aux
+    | rondas==0 = [aux !! (tamLista aux - 2), aux !! (tamLista aux - 1)]    --texto descifrado, datos aleatorios/residuales
+    | rondas>0 = nrondasInverso' (rondas-1) clave resultadoFinRonda nuevosDatosCAS regla (aux ++ resultadoFinRonda)
+    | otherwise = error "Se ha producido un error al aplicar las rondas en el descifrado."
     where
         resultadosRonda = rondaInversaTransformaciones datosCAS inicial clave regla
         resultadoFinRonda = fst resultadosRonda
         nuevosDatosCAS = snd resultadosRonda
 
-descifrado :: Int -> Int -> [Int] -> [[Int]] -> [[Int]] -> [Int] -> Int -> [[Int]]
-descifrado semilla n clave datosCAS textoCifrado datosAleatorios regla = descifrado' semilla n clave datosCAS restoTextoCifrado regla primerBloqueRondas
+descifrado :: Int -> [Int] -> [[Int]] -> [[Int]] -> [Int] -> Int -> [[Int]]
+descifrado rondas clave datosCAS textoCifrado datosAleatorios regla = descifrado' rondas clave datosCAS restoTextoCifrado regla numeroRondasDescifrado primerBloqueRondas
     where
+        numeroRondasDescifrado = length textoCifrado
         inicial = [primero textoCifrado, datosAleatorios]
-        primerBloqueRondas = nrondasInverso semilla n clave inicial datosCAS regla
+        primerBloqueRondas = nrondasInverso rondas clave inicial datosCAS regla
         restoTextoCifrado = tail textoCifrado
 
-descifrado' :: Int ->  Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> [[Int]] -> [[Int]]
-descifrado' semilla n clave datosCAS textoCifrado regla aux
-    | n>0 = descifrado' semilla n clave datosCAS (tail textoCifrado) regla (bloqueRondas ++ aux)
-    | otherwise = [lista | (lista, i)<-zip aux [1..tamLista aux], odd i]
+descifrado' :: Int -> [Int] -> [[Int]] -> [[Int]] -> Int -> Int -> [[Int]] -> [[Int]]
+descifrado' rondas clave datosCAS textoCifrado regla n aux
+    | n==0 || null textoCifrado = [lista | (lista, i)<-zip aux [1..tamLista aux], even i]
+    | n>0 = descifrado' rondas clave datosCAS (tail textoCifrado) regla (n-1) (bloqueRondas ++ aux)
+    | otherwise = error "Se ha producido un error al realizar el descifrado."
     where
-        inicial = [primero textoCifrado, ultimo aux]
-        bloqueRondas = nrondasInverso semilla n clave inicial datosCAS regla
+        inicial = [primero textoCifrado, primero $ tail aux]
+        bloqueRondas = nrondasInverso rondas clave inicial datosCAS regla
 
 

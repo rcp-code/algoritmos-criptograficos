@@ -21,10 +21,11 @@ mainInteraccion = do
 
 principal :: IO ()
 principal = do
-    imprime "Advertencia: el programa puede tardar unos segundos en generar los primos."
+    imprime "Advertencia: el programa puede tardar unos segundos en generar los primos y en realizar los procesos de cifrado y descifrado mediante autómatas celulares."
     --algoritmoRSA
     --cifradoBloqueACSOSimplificado
-    cifradoBloqueACSO
+    --cifradoBloqueACSO
+    cifradoBloqueACSO2
     -- imprime "¿Qué algoritmo desea aplicar: RSA, Cifrado de bloques (bloque) o XXX? "
     -- opcion <- leeMensaje
     -- if opcion == "RSA" || opcion=="rsa" then do
@@ -92,11 +93,11 @@ algoritmoRSA = do
     msg <- leeMensaje
     imprime "El mensaje que va a cifrarse es el siguiente:"
     imprime msg
-    let mensajeCifrado = cifraRSA msg clavePublica 
+    let mensajeCifrado = cifraRSA msg clavePublica
     imprime "El mensaje se ha cifrado correctamente de la siguiente manera:"
     imprime mensajeCifrado
     imprime "Se va a proceder con el descifrado del mensaje..."
-    let mensajeOriginal = descifraRSA mensajeCifrado clavePrivada 
+    let mensajeOriginal = descifraRSA mensajeCifrado clavePrivada
     imprime "El mensaje se ha descifrado y es el siguiente:"
     imprime $ show mensajeOriginal
     imprime "Fin del algoritmo RSA."
@@ -145,12 +146,12 @@ cifradoBloqueACSO = do
         let subLista = agregaCerosAIzquierda (ultimo textoABinario) numBits
         let textoABinario' = init textoABinario ++ [subLista]
         semilla' <- now
-        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numPasosCifrado clavePrivada textoABinario reglaAC
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numeroRondas clavePrivada textoABinario reglaAC
         let textoCifrado = transformaBinarioEnTexto $ fst' tripletaCifradoCASAleatoriosFinal
         putStr "El texto cifrado es: "
         imprime textoCifrado
         imprime "Se va a proceder con el descifrado: "
-        let binarioDescifrado = descifrado semilla numPasosCifrado clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let binarioDescifrado = descifrado numeroRondas clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
         let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
         putStr "El texto descifrado es: "
         imprime textoDescifrado
@@ -162,12 +163,12 @@ cifradoBloqueACSO = do
         imprime "Fin de la ejecución"
     else do
         semilla' <- now
-        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numPasosCifrado clavePrivada textoABinario reglaAC
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numeroRondas clavePrivada textoABinario reglaAC
         let textoCifrado = transformaBinarioEnTexto $ fst' tripletaCifradoCASAleatoriosFinal
         putStr "El texto cifrado es: "
         imprime textoCifrado
         imprime "Se va a proceder con el descifrado: "
-        let binarioDescifrado = descifrado semilla numPasosCifrado clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let binarioDescifrado = descifrado numeroRondas clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
         let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
         putStr "El texto descifrado es: "
         imprime textoDescifrado
@@ -178,6 +179,56 @@ cifradoBloqueACSO = do
             imprime "No."
     imprime "Fin de la ejecución"
 
+cifradoBloqueACSO2 :: IO ()
+cifradoBloqueACSO2 = do
+    let mensaje = "Lorem ipsum dolor sit amet consectetur adipiscing elit, facilisis curabitur habitant pellentesque sollicitudin nostra nibh, mi lacus semper tempor aliquet potenti. Vivamus nam vestibulum aenean dis suspendisse eget augue quam, tempor pellentesque praesent gravida sapien turpis. Nascetur dapibus sapien himenaeos rutrum arcu morbi, suspendisse nulla tortor vestibulum conubia egestas, viverra aptent mi sociosqu nullam. Et felis mus sed nam per vivamus sem congue penatibus iaculis varius, vulputate ultrices sociosqu duis tempus dictumst sodales condimentum nulla a, placerat habitant eleifend nunc primis convallis velit tincidunt litora ligula. Scelerisque platea maecenas cras laoreet lobortis tortor proin aliquet suscipit ridiculus cubilia commodo augue, eros rhoncus sagittis diam eget phasellus nam non eu justo netus tempor. Tempor platea justo habitasse ornare varius malesuada facilisi aenean odio, aptent sollicitudin cras a blandit faucibus euismod fermentum mi, eleifend non facilisis vulputate fames donec ac nulla."
+    semilla <- now
+    let clavePrivada = take 224 $ concat $ cambioABase2Lista $ generaAleatoriosL semilla
+    let textoABinario = bloques64Bits $ transformaTextoEnBinario mensaje
+    putStr "Se va a cifrar el mensaje: "
+    imprime mensaje
+    imprime "Comienzo del proceso de cifrado y descifrado..."
+    if length (ultimo textoABinario) < numBits then do
+        let subLista = agregaCerosAIzquierda (ultimo textoABinario) numBits
+        let textoABinario' = init textoABinario ++ [subLista]
+        semilla' <- now
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numeroRondas clavePrivada textoABinario reglaAC
+        let textoCifradoBin = fst' tripletaCifradoCASAleatoriosFinal
+        
+        --let partebs = map (deListaBinarioANum . parte 8) textoCifradoBin
+        --let listaEnteros = [deListaBinarioANum bin | bin<-partebs]
+        --imprime ("La lista de enteros es: " ++ show partebs)
+        --let textoCifrado = transformaEnteroEnTexto listaEnteros
+        --putStr "El texto cifrado es: "
+        --imprime textoCifrado
+        imprime "Se va a proceder con el descifrado: "
+        let binarioDescifrado = descifrado numeroRondas clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
+        putStr "El texto descifrado es: "
+        imprime textoDescifrado
+        imprime "¿El texto que se ha descifrado corresponde con el original?"
+        if mensaje==textoDescifrado then do
+            imprime "Sí."
+        else do
+            imprime "No."
+        imprime "Fin de la ejecución"
+    else do
+        semilla' <- now
+        let tripletaCifradoCASAleatoriosFinal = cifrado semilla' numeroRondas clavePrivada textoABinario reglaAC
+        let textoCifrado = transformaBinarioEnTexto $ fst' tripletaCifradoCASAleatoriosFinal
+        putStr "El texto cifrado es: "
+        imprime textoCifrado
+        imprime "Se va a proceder con el descifrado: "
+        let binarioDescifrado = descifrado numeroRondas clavePrivada (snd' tripletaCifradoCASAleatoriosFinal) (fst' tripletaCifradoCASAleatoriosFinal) (trd' tripletaCifradoCASAleatoriosFinal) reglaAC
+        let textoDescifrado = transformaBinarioEnTexto binarioDescifrado
+        putStr "El texto descifrado es: "
+        imprime textoDescifrado
+        imprime "¿El texto que se ha descifrado corresponde con el original?"
+        if mensaje==textoDescifrado then do
+            imprime "Sí."
+        else do
+            imprime "No."
+    imprime "Fin de la ejecución"
 
 
 

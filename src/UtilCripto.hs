@@ -175,7 +175,9 @@ agregaCerosAIzquierda ns bits
         numeroCeros = bits - tamLista ns
 
 transformaBinarioEnCaracter :: [Int] -> Char
-transformaBinarioEnCaracter bs = L.head [car | (car,num)<-asociaciones, num==numero]
+transformaBinarioEnCaracter bs 
+    | numero>=10 && numero<ultimoCaracterAsociaciones = L.head [car | (car,num)<-asociaciones, num==numero]
+    | otherwise = error "El numero introducido no esta dentro de la lista de asociaciones."
     where
         numero = deListaBinarioANum bs
 

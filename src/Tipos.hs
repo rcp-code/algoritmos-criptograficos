@@ -14,12 +14,7 @@ import Data.Functor
 import Control.Comonad
 import Data.Vector
 
-
-
 data Tripleta a = Tripleta (a, a, a) deriving (Show, Eq)
-
-type Pos = (Int, Int)
-
 data Cycle a = Cycle Int a a (InfList a) 
                   deriving (Functor, Show)
 
@@ -35,8 +30,10 @@ data ClavePublicaYPrivadaRSA = ClavePublicaYPrivadaRSA {e :: Integer
                                                 , parPrivado :: Clave
                                                 } deriving (Show, Eq)
 
+
+
 type Clave = (Integer, Integer)
 
 type Mensaje = String
 
-
+type Pos = (Int, Int)

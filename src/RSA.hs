@@ -67,15 +67,20 @@ clavesPublicaYPrivadaIO :: (Integer, Integer) -> IO ClavePublicaYPrivadaRSA
 clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
     --let e = unsafePerformIO (generate (calculoE' phi))
+    imprime "Se va a crear el exponente e..."
     let en = claveNE pq semilla
+    imprime "Se ha creado el exponente y se va a crear la clave privada d..."
     let d = exponenentesMod (fst en) (phi-1) phi
+    imprime "Se va a comprobar si e y d son coprimos..."
     if compruebaClavePrivada' (fst en) d phi then do
+        imprime "e y d son coprimos..."
         let priv = construyeClave d (snd en)
         let cpp = ClavePublicaYPrivadaRSA {e=fst en, n=snd en, d=d, parPublico=en, parPrivado=priv}
         imprime "Se han generado con éxito las claves pública y privada."
         return cpp
     else do
-       clavesPublicaYPrivadaIO pq
+        imprime "e y d NO son coprimos, se va a ejecutar de nuevo la función en busca de e y d aptos..."
+        clavesPublicaYPrivadaIO pq
     where
         n = calculoN pq
         phi = calculoPhi p q
