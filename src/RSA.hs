@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 module RSA where
 
     {----------------------------------------------------------------------
@@ -8,13 +10,14 @@ import UtilGeneral
 import UtilCripto
 import AutomataCelular
 import Tipos
+import Constantes
 
 import Data.List as L
-import Test.QuickCheck.Property
 import System.IO.Unsafe (unsafePerformIO)
-import Test.QuickCheck
 import Data.Char
 import UtilIO
+import Test.QuickCheck
+import System.Random
 
 
 
@@ -30,15 +33,10 @@ calculoN :: (Integer, Integer) -> Integer
 calculoN (p, q) = abs (p*q)
 
 claveNE :: (Integer, Integer) -> Int -> Clave
-claveNE pq@(p, q) semilla = primero [(toInteger aleatorio, n) | aleatorio<-generaAleatoriosL semilla, sonCoprimos (toInteger aleatorio) phi]
+claveNE pq@(p, q) semilla = primero [(n, toInteger aleatorio) | aleatorio<-generaAleatoriosL semilla, sonCoprimos aleatorio (fromInteger phi)]
     where
         phi = calculoPhi p q
         n = calculoN pq
-
--- clavePublica :: Integer -> Integer -> Clave
--- clavePublica e phi_n
---     | compruebaE e phi_n = construyeClave e phi_n
---     | otherwise = error "El exponente de la clave publica no es valido."
 
 -- Otra versión: extraído (este y el siguiente) de "Criptografía desde el punto de vista de la programación funcional"
 calculoE :: Integer -> Integer
@@ -49,16 +47,6 @@ calculoE' phiN = suchThat (choose (1,phiN)) (sonCoprimos phiN)  --se genera un v
                                                                 --choose: genera un número aleatorio entre 1 y phiN
 
     {-------------------------------------------------------------------------
-                                Clave privada
-    -------------------------------------------------------------------------}
-
-compruebaClavePrivada :: ClavePublicaYPrivadaRSA -> Integer -> Bool
-compruebaClavePrivada (ClavePublicaYPrivadaRSA e _ d _ _) phi_n = d*e == mod 1 phi_n
-
-compruebaClavePrivada' :: Integer -> Integer -> Integer -> Bool 
-compruebaClavePrivada' e d phi_n = d*e == mod 1 phi_n
-
-    {-------------------------------------------------------------------------
                             Clave pública y privada
     -------------------------------------------------------------------------}
 
@@ -66,24 +54,15 @@ compruebaClavePrivada' e d phi_n = d*e == mod 1 phi_n
 clavesPublicaYPrivadaIO :: (Integer, Integer) -> IO ClavePublicaYPrivadaRSA
 clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
-    --let e = unsafePerformIO (generate (calculoE' phi))
-    imprime "Se va a crear el exponente e..."
-    let en = claveNE pq semilla
-    imprime "Se ha creado el exponente y se va a crear la clave privada d..."
-    let d = exponenentesMod (fst en) (phi-1) phi
-    imprime "Se va a comprobar si e y d son coprimos..."
-    if compruebaClavePrivada' (fst en) d phi then do
-        imprime "e y d son coprimos..."
-        let priv = construyeClave d (snd en)
-        let cpp = ClavePublicaYPrivadaRSA {e=fst en, n=snd en, d=d, parPublico=en, parPrivado=priv}
-        imprime "Se han generado con éxito las claves pública y privada."
-        return cpp
-    else do
-        imprime "e y d NO son coprimos, se va a ejecutar de nuevo la función en busca de e y d aptos..."
-        clavesPublicaYPrivadaIO pq
+    let e = abs $ calculoE phiN
+    let d = abs $ inversoModular' e phiN
+    let pub = construyeClave n e
+    let priv = construyeClave n d
+    let cpp = ClavePublicaYPrivadaRSA {e=e, n=n, d=d, parPublico=pub, parPrivado=priv}
+    return cpp
     where
         n = calculoN pq
-        phi = calculoPhi p q
+        phiN = calculoPhi p q
 
 clavesPublicaYPrivada :: (Integer, Integer) -> ClavePublicaYPrivadaRSA
 clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
@@ -93,66 +72,88 @@ clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
     -------------------------------------------------------------------------}
 
 -- Las siguientes dos funciones fueron creadas gracias a "Criptografía desde el punto de vista de la programación funcional"
-exponenentesMod :: Integer -> Integer -> Integer -> Integer
-exponenentesMod c 1 n = mod c n
-exponenentesMod c e n
-    | even e = exponenentesMod m de n
+exponenciacionModular :: Integer -> Integer -> Integer -> Integer
+exponenciacionModular c 1 n = mod c n
+exponenciacionModular c e n
+    | even e = exponenciacionModular m de n
     | otherwise = mod exp n
     where
         m = mod (c*c) n
         de = div e 2
-        exp = c*exponenentesMod c (e-1) n
+        exp = c*exponenciacionModular c (e-1) n
 
-prop_ExpMod :: Integer -> Integer -> Integer -> Property
-prop_ExpMod c e n = e>0 && n>0 ==> exponenentesMod c e n == mod exp n
-    where
-        exp = c^e
-
-cifraRSA :: Mensaje -> Clave -> Mensaje
-cifraRSA m (n,e) = transformaEnteroEnTexto cifrado
+cifradoRSA :: Mensaje -> Clave -> Mensaje
+cifradoRSA m (n,e) = show listaOperacionModular
     where 
-        numeroAsociado = transformaListaNumerosEnNumero $ transformaTextoEnEntero m 
-        operacionMod = exponenentesMod (toInteger numeroAsociado) e n
-        parteEn2 = parte 2 cifrado
-        cifrado = transformaListaNumeros parteEn2
+        numeroAsociadoAMensaje = transformaTextoEnEntero m 
+        listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) e n | c<-numeroAsociadoAMensaje]
 
-descifraRSA :: Mensaje -> Clave -> Mensaje
-descifraRSA = cifraRSA
-
-
-
-
+descifradoRSA :: Mensaje -> Clave -> Mensaje
+descifradoRSA m (n,d) = show listaOperacionModular
+    where 
+        --numeroAsociadoACifrado = transformaTextoEnEntero m 
+        numeroAsociadoACifrado = read m
+        listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) d n | c<-numeroAsociadoACifrado]
 
 
+main = do 
+    putStrLn "Introduzca el texto a cifrar:"
+    texto <- getLine
+    let p1 = 53419 --53419 --100003 --1009 --6070361010663577289 --83   RSA.obtienePrimoAleatorio
+    let p2 = 100057 --90073 --100057 --1223 --3209762499797668553 --97  RSA.obtienePrimoAleatorio
+    let phiN = calculoPhi (fromInteger p1) (fromInteger p2)
+        n   = calculoN (fromInteger p1, fromInteger p2)
+        claves = clavesPublicaYPrivada (fromInteger p1, fromInteger p2)
+        privada = parPrivado claves 
+        publica = parPublico claves
+        e = snd publica
+        d = snd privada
+        mensajeNum = transformaTextoEnEntero texto
+        cif = cifradoRSA texto (n,e)
+        descif = descifradoRSA cif (n,d)
+        menDescif = transformaEnteroEnTexto (read descif)
+    imprime ("p1: " ++ show p1 ++ " y p2: " ++ show p2)
+    imprime ("Clave pública: " ++ show publica ++ " y clave privada: " ++ show privada)
+    imprime "El texto ha sido cifrado."
+    imprime ("Texto cifrado: " ++ show cif)
+    putStr "El texto se ha descifrado "
+    if menDescif == texto then do
+        imprime "correctamente."
+        imprime ("Texto descifrado: " ++ show descif)
+    else do
+        imprime "de forma incorrecta."
+        imprime ("Texto descifrado: " ++ show descif)
+    imprime ("Texto descifrado: " ++ menDescif)
 
--- cifraRSA :: Mensaje -> Clave -> Integer
--- cifraRSA m (e,n) = exponenentesMod (toInteger entero) e n
---     where 
---         binario = traduceTextoABinario' m 
---         entero = deBitsAInt binario
+obtienePrimoAleatorio :: IO Integer
+obtienePrimoAleatorio = do
+    gen <- newStdGen
+    let (semillaLista, nuevoGen) = randomR (1, 1000) gen :: (Int, StdGen)
+    let (semillaCeldas, genNuevo) = randomR (100, 6005) nuevoGen :: (Int, StdGen)
+    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        --genera número aleatorio de celdas que tendrá el autómata
+    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         --si el número de celdas que se genera de manera aleatoria es par, le suma uno para que sea impar
+                  | otherwise = numCeldasAlt
+    let listaAleatorios = generaAleatoriosL semillaLista
+    let listaAleatoriosBase2 = concat (cambioABase2Lista listaAleatorios)                --se pasa la lista de aleatorios a base 2 y se aplana
+    --Se crea el autómata para generar el número pseudoaleatorio
+    let inicia = iniciaAC numCeldas listaAleatoriosBase2
+    let automata = generaAC numCeldas (regla 30) inicia
+    let indices = [1..genericLength automata-1]
+    let listaCentros = take 16 [elementoCentral f | f<-automata]
+    let num = deListaBinarioANum listaCentros
+    let control = esPrimo (toInteger num)
+    semillaPrimos <- now
+    let opcion = generaAleatorio' semillaPrimos             --obtiene un número aleatorio entre 0 y 1 para elegir de manera aleatoria si se buscará un primo por encima o por debajo del número
+    --se genera el número primo a partir del AC
+    let p | control = num                                   --si el número ya es primo, no hay que buscarlo
+          | opcion == 0 = obtienePrimoCercanoInf num
+          | otherwise = obtienePrimoCercanoSup num
+    return (toInteger p)
 
--- descifraRSA :: Integer -> Clave -> Mensaje
--- descifraRSA m (d,n) = binarioATexto desencriptado
---     where 
---         numero = exponenentesMod m d n
---         desencriptado = deIntABits $ fromInteger numero
 
--------------------------------------------------------------------
 
--- cifraMensaje :: Mensaje -> Clave -> Mensaje
--- cifraMensaje msg (e,n) = deNumerosATexto numero
---     where
---         preparado = prepararTexto msg
---         mensaje = toInteger $ transformaEnNumero preparado
---         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
 
--- descifraMensaje :: Mensaje -> Clave -> Mensaje
--- descifraMensaje msg clave@(e,n) = restaurarTexto numero
---     where
---         preparado = prepararTexto msg
---         mensaje = toInteger $ transformaEnNumero preparado
---         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
-        
+
 -------------------------------------------------------------------
 
 -- Alternativa poco segura: 
@@ -162,7 +163,7 @@ descifraRSA = cifraRSA
 --     where
 --         preparado = prepararTexto msg
 --         mensaje = toInteger $ transformaEnNumero preparado
---         numero = digitos $ fromInteger $ exponenentesMod mensaje e n
+--         numero = digitos $ fromInteger $ exponenciacionModular mensaje e n
 
 -- descifraMensaje :: (Mensaje, [Int]) -> Clave -> Mensaje
 -- descifraMensaje (msg, control) (e,n) = restaurarTexto control

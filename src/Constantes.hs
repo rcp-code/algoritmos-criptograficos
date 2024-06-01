@@ -12,7 +12,16 @@ import UtilIO
     ----------------------------------------------------------------------}
 
 caracteres :: String
-caracteres = ' ' : ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['.',',','!','?']
+caracteres = ' ' : letras ++ ['0'..'9'] ++ caracteresEspeciales
+
+letras :: String
+letras = ['a'..'z'] ++ ['A'..'Z']
+
+caracteresEspeciales :: String
+caracteresEspeciales = ".:,;!?@$%&|~/()=[]<>-_+*^ºª\n\t\"\'"
+
+abecedario :: String
+abecedario = ['A'..'Z']
 
 numeros :: [Int]
 numeros = [10..]
@@ -20,6 +29,11 @@ numeros = [10..]
 asociaciones :: [(Char, Int)]
 asociaciones = zip caracteres numeros
 
+-- Numero correspondiente al primer caracter en asociaciones
+primerCaracterAsociaciones :: Int
+primerCaracterAsociaciones = snd $ head asociaciones
+
+-- Numero correspondiente al ultimo caracter en asociaciones
 ultimoCaracterAsociaciones :: Int
 ultimoCaracterAsociaciones = snd $ last asociaciones
 
@@ -42,20 +56,23 @@ numPasos = 500
 reglaAC :: Int
 reglaAC = 30
 
-pasosEvolucion :: Int
-pasosEvolucion = 10
+-- pasosEvolucion :: Int
+-- pasosEvolucion = 10
 
 numPasosCALR :: Int
-numPasosCALR = 5
+numPasosCALR = 19 --4
 
 numPasosCAC :: Int 
-numPasosCAC = 7
+numPasosCAC = 17 --4
 
 numPasosCAS :: Int
-numPasosCAS = 10
+numPasosCAS = 5     --NO CAMBIAR BAJO NINGÚN CONCEPTO
 
 numeroRondas :: Int
-numeroRondas = 10
+numeroRondas = 15
 
 numBits :: Int
 numBits = 64
+
+evolucionCifradoWolfram :: Int
+evolucionCifradoWolfram = 1500

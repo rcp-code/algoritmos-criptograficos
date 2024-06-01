@@ -1,7 +1,7 @@
 module Main where
 
-import Interaccion
+import Experimentos
 
 main :: IO ()
-main = mainInteraccion
+main = mainExperimentos
   

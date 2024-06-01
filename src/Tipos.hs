@@ -16,12 +16,12 @@ import Data.Vector
 
 data Tripleta a = Tripleta (a, a, a) deriving (Show, Eq)
 data Cycle a = Cycle Int a a (InfList a) 
-                  deriving (Functor, Show)
-
+                  deriving (Functor, Show, Eq)
+                  
 data CycleSO a = CycleSO {nCeldas :: Int
                 , pasado :: [a]                 -- vecindad en el instante t-1
                 , presente :: [a]               -- vecindad en el instante t
-                } deriving (Show, Functor)  
+                } deriving (Functor, Show, Eq)  
 
 data ClavePublicaYPrivadaRSA = ClavePublicaYPrivadaRSA {e :: Integer
                                                 , n :: Integer
@@ -30,10 +30,15 @@ data ClavePublicaYPrivadaRSA = ClavePublicaYPrivadaRSA {e :: Integer
                                                 , parPrivado :: Clave
                                                 } deriving (Show, Eq)
 
-
+data ClavePrivada = ClavePrivada {k :: [Int]             --clave completa
+                            , kCAL :: [Int]       --parte correspondiente al CAL
+                            , kCAR :: [Int]       --parte correspondiente al CAR
+                            , kCAC :: [Int]       --parte correspondiente al CAC
+                            , kCAS :: [[Int]]       --parte correspondiente al CAS
+                            } deriving (Show)      
 
 type Clave = (Integer, Integer)
 
 type Mensaje = String
 
-type Pos = (Int, Int)
+

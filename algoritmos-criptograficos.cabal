@@ -23,7 +23,7 @@ name:               algoritmos-criptograficos
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis: Criptografía con autómatas celulares para generar números pseudoaleatorios.
+synopsis: Autómatas celulares aplicados a la criptografía en el entorno de la programación funcional
 
 -- A longer description of the package.
 -- description:
@@ -52,17 +52,16 @@ extra-doc-files:    CHANGELOG.md, README.md
 
 library
     -- Modules exported by the library.
-    exposed-modules: Interaccion
+    exposed-modules: Experimentos
 
     -- Modules included in this library but not exported.
-    other-modules: AutomataCelular, CifradoBloque, Constantes, RSA, Tipos, UtilCripto, UtilGeneral, UtilIO
+    other-modules: AutomataCelular, CifradoBloque, CifradoWolfram, Constantes, RSA, Tipos, UtilCripto, UtilGeneral, UtilIO
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
     build-depends:  base ^>=4.16.0.0, 
-                    QuickCheck ^>=2.14, 
                     matrix ^>=0.3.6.1, 
                     vector ^>=0.13.0.0, 
                     comonad ^>=5.0.8, 
@@ -72,6 +71,7 @@ library
                     Crypto ^>=4.2.5.2,
                     integer-logarithms ^>=1.0.3.1,
                     cond ^>=0.5.1,
+                    QuickCheck ^>=2.15, 
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -105,7 +105,7 @@ test-suite algoritmos-criptograficos-test
     default-language: Haskell2010
 
     -- Modules included in this executable, other than Main.
-    other-modules: LibTest
+    other-modules: TestsPropiedades
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -114,15 +114,26 @@ test-suite algoritmos-criptograficos-test
     type:             exitcode-stdio-1.0
 
     -- Directories containing source files.
-    hs-source-dirs:   test
+    hs-source-dirs:   test, src
+
+    --ghc-options: -threaded -rtsopts -with-rtsopts=-N
 
     -- The entrypoint to the test suite.
-    main-is:          Pruebas.hs
+    main-is:          TestMain.hs
 
     -- Test dependencies.
     build-depends:
         base ^>=4.16.0.0,
-        QuickCheck ^>=2.14, 
+        QuickCheck ^>=2.15, 
         HUnit ^>=1.6.2.0,
         hspec ^>=2.11.7,
+        matrix ^>=0.3.6.1, 
+        vector ^>=0.13.0.0, 
+        comonad ^>=5.0.8, 
+        random ^>=1.2.1.1,
+        inflist ^>=0.0.1,
+        time ^>=1.11.1,
+        Crypto ^>=4.2.5.2,
+        integer-logarithms ^>=1.0.3.1,
+        cond ^>=0.5.1,
         algoritmos-criptograficos

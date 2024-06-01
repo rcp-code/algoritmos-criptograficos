@@ -10,6 +10,16 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_algoritmos_criptograficos */
+/* package Crypto-4.2.5.2 */
+#ifndef VERSION_Crypto
+#define VERSION_Crypto "4.2.5.2"
+#endif /* VERSION_Crypto */
+#ifndef MIN_VERSION_Crypto
+#define MIN_VERSION_Crypto(major1,major2,minor) (\
+  (major1) <  4 || \
+  (major1) == 4 && (major2) <  2 || \
+  (major1) == 4 && (major2) == 2 && (minor) <= 5)
+#endif /* MIN_VERSION_Crypto */
 /* package HUnit-1.6.2.0 */
 #ifndef VERSION_HUnit
 #define VERSION_HUnit "1.6.2.0"
@@ -20,15 +30,15 @@
   (major1) == 1 && (major2) <  6 || \
   (major1) == 1 && (major2) == 6 && (minor) <= 2)
 #endif /* MIN_VERSION_HUnit */
-/* package QuickCheck-2.14.3 */
+/* package QuickCheck-2.15 */
 #ifndef VERSION_QuickCheck
-#define VERSION_QuickCheck "2.14.3"
+#define VERSION_QuickCheck "2.15"
 #endif /* VERSION_QuickCheck */
 #ifndef MIN_VERSION_QuickCheck
 #define MIN_VERSION_QuickCheck(major1,major2,minor) (\
   (major1) <  2 || \
-  (major1) == 2 && (major2) <  14 || \
-  (major1) == 2 && (major2) == 14 && (minor) <= 3)
+  (major1) == 2 && (major2) <  15 || \
+  (major1) == 2 && (major2) == 15 && (minor) <= 0)
 #endif /* MIN_VERSION_QuickCheck */
 /* package algoritmos-criptograficos-0.1.0.0 */
 #ifndef VERSION_algoritmos_criptograficos
@@ -50,6 +60,96 @@
   (major1) == 4 && (major2) <  16 || \
   (major1) == 4 && (major2) == 16 && (minor) <= 4)
 #endif /* MIN_VERSION_base */
+/* package comonad-5.0.8 */
+#ifndef VERSION_comonad
+#define VERSION_comonad "5.0.8"
+#endif /* VERSION_comonad */
+#ifndef MIN_VERSION_comonad
+#define MIN_VERSION_comonad(major1,major2,minor) (\
+  (major1) <  5 || \
+  (major1) == 5 && (major2) <  0 || \
+  (major1) == 5 && (major2) == 0 && (minor) <= 8)
+#endif /* MIN_VERSION_comonad */
+/* package cond-0.5.1 */
+#ifndef VERSION_cond
+#define VERSION_cond "0.5.1"
+#endif /* VERSION_cond */
+#ifndef MIN_VERSION_cond
+#define MIN_VERSION_cond(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  5 || \
+  (major1) == 0 && (major2) == 5 && (minor) <= 1)
+#endif /* MIN_VERSION_cond */
+/* package hspec-2.11.8 */
+#ifndef VERSION_hspec
+#define VERSION_hspec "2.11.8"
+#endif /* VERSION_hspec */
+#ifndef MIN_VERSION_hspec
+#define MIN_VERSION_hspec(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  11 || \
+  (major1) == 2 && (major2) == 11 && (minor) <= 8)
+#endif /* MIN_VERSION_hspec */
+/* package inflist-0.0.1 */
+#ifndef VERSION_inflist
+#define VERSION_inflist "0.0.1"
+#endif /* VERSION_inflist */
+#ifndef MIN_VERSION_inflist
+#define MIN_VERSION_inflist(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  0 || \
+  (major1) == 0 && (major2) == 0 && (minor) <= 1)
+#endif /* MIN_VERSION_inflist */
+/* package integer-logarithms-1.0.3.1 */
+#ifndef VERSION_integer_logarithms
+#define VERSION_integer_logarithms "1.0.3.1"
+#endif /* VERSION_integer_logarithms */
+#ifndef MIN_VERSION_integer_logarithms
+#define MIN_VERSION_integer_logarithms(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  0 || \
+  (major1) == 1 && (major2) == 0 && (minor) <= 3)
+#endif /* MIN_VERSION_integer_logarithms */
+/* package matrix-0.3.6.3 */
+#ifndef VERSION_matrix
+#define VERSION_matrix "0.3.6.3"
+#endif /* VERSION_matrix */
+#ifndef MIN_VERSION_matrix
+#define MIN_VERSION_matrix(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  3 || \
+  (major1) == 0 && (major2) == 3 && (minor) <= 6)
+#endif /* MIN_VERSION_matrix */
+/* package random-1.2.1.2 */
+#ifndef VERSION_random
+#define VERSION_random "1.2.1.2"
+#endif /* VERSION_random */
+#ifndef MIN_VERSION_random
+#define MIN_VERSION_random(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  2 || \
+  (major1) == 1 && (major2) == 2 && (minor) <= 1)
+#endif /* MIN_VERSION_random */
+/* package time-1.11.1.1 */
+#ifndef VERSION_time
+#define VERSION_time "1.11.1.1"
+#endif /* VERSION_time */
+#ifndef MIN_VERSION_time
+#define MIN_VERSION_time(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  11 || \
+  (major1) == 1 && (major2) == 11 && (minor) <= 1)
+#endif /* MIN_VERSION_time */
+/* package vector-0.13.1.0 */
+#ifndef VERSION_vector
+#define VERSION_vector "0.13.1.0"
+#endif /* VERSION_vector */
+#ifndef MIN_VERSION_vector
+#define MIN_VERSION_vector(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  13 || \
+  (major1) == 0 && (major2) == 13 && (minor) <= 1)
+#endif /* MIN_VERSION_vector */
 
 /* tool alex-3.2.4 */
 #ifndef TOOL_VERSION_alex

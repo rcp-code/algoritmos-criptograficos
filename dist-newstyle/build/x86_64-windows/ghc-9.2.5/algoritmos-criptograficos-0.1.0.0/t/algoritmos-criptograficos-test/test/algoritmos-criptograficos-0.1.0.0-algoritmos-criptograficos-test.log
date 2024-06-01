@@ -1,0 +1,12 @@
+Test suite algoritmos-criptograficos-test: RUNNING...
+Bienvenido/a al entorno de pruebas...
+-------------Propiedades relativas al cifrado RSA-------------
+Propiedad de clave privada: 
+*** Gave up! Passed only 0 tests; 1000 discarded tests.
+Propiedad de la exponenciaci¢n modular
+*** Gave up! Passed only 79 tests; 1000 discarded tests.
+Propiedad que comprueba que el mensaje original es el mismo al descifrar el texto cifrado.
+*** Gave up! Passed only 0 tests; 1000 discarded tests.
+Fin de la ejecuci¢n.
+Test suite algoritmos-criptograficos-test: PASS
+Test suite logged to: C:\algoritmos-criptograficos\dist-newstyle\build\x86_64-windows\ghc-9.2.5\algoritmos-criptograficos-0.1.0.0\t\algoritmos-criptograficos-test\test\algoritmos-criptograficos-0.1.0.0-algoritmos-criptograficos-test.log

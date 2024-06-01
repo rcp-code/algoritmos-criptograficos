@@ -15,18 +15,20 @@ import Control.Comonad
 import System.Random
 import Data.InfList as Inf
 import Data.List as L
-import Data.Vector as V
-import Data.Matrix as M
+import UtilIO
+import UtilCripto
 
 
-    {-------------------------------------------------------------------------
-                      Tratamiento de autómatas celulares
-    -------------------------------------------------------------------------}
+
 instance Comonad Cycle where
   extract (Cycle _ _ cen _) = cen
   duplicate cel@(Cycle n _ _ _) = deListaACiclo $ Inf.take n $ Inf.iterate cambia cel
     where
       cambia (Cycle n _ cen (der:::ds)) = Cycle n cen der ds
+
+    {-------------------------------------------------------------------------
+                      Tratamiento de autómatas celulares
+    -------------------------------------------------------------------------}
 
 --Transforma un ciclo en una lista 
 vista :: Cycle a -> [a]
@@ -66,9 +68,9 @@ iniciaAC numCels lista = deListaACiclo $ centro $ incluyeVecinosDer numCels list
     ------------------------------------------------------------------------------------}
 
 generaAC :: (Integral a, Num a) => Int -> (a -> a -> a -> a) -> Cycle a -> [[a]]
-generaAC n regla ini = Inf.take n automata
+generaAC n regla inicial = Inf.take n automata
   where
-    automata = vista <$> ejecutaAC regla ini
+    automata = vista <$> ejecutaAC regla inicial
 
     {-----------------------------------------------------------------------------------
                                     Muestra el AC
@@ -87,87 +89,185 @@ muestraAC n regla ini = P.mapM_ putStrLn $ Inf.take n automata
                             Autómatas de segundo orden
     ------------------------------------------------------------------------------------}
 
--- Extracción y transformación de datos:
-
-extraePasado :: CycleSO Int -> [Int]
-extraePasado (CycleSO nc pasado _) =  pasado
-
-extraePresente :: CycleSO Int -> [Int]
-extraePresente (CycleSO nc _ presente) = presente
-
-vistaPlana :: CycleSO Int -> [Int]
-vistaPlana (CycleSO nc pasado presente) = pasado
-
--- inicializa :: Int -> Int -> Int -> [Int] -> CycleSO Int
--- inicializa n reg radioVecindad lista = CycleSO {nCeldas=n, pasado=vecindad, presente=futuraVecindad}
---     where
---         vecindad = L.take n lista
---         futuraVecindad = aplicaRegla reg radioVecindad vecindad
+vista' :: CycleSO Int -> [Int]
+vista' (CycleSO nc pasado presente) = presente
 
 -- Datos iniciales para el autómata de segundo orden
 inicializacion :: Int -> [Int] -> [Int] -> CycleSO Int
 inicializacion n lista1 lista2 = CycleSO {nCeldas=n, pasado=lista1, presente=lista2}
 
--- Cálculo de la regla con radio de vecindad 2:
-reglaVecindadDos :: Int -> Int -> Int -> Int -> Int -> Int -> Int
-reglaVecindadDos r izq2 izq1 cen der1 der2 = r `div` (2^(5*izq2 + 4*izq1 + 3*cen + 2*der1 + der2)) `mod` 2
-
--- Cálculo de la regla con radio de vecindad 3:
-reglaVecindadTres :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int
-reglaVecindadTres r izq3 izq2 izq1 cen der1 der2 der3 = r `div` (2^(7* izq3 + 6*izq2 + 5*izq1 + 4*cen + 3*der1 + 2*der2 + der1)) `mod` 2
-
--- Aplica regla de segundo orden para vecindades 1, 2 y 3:
-aplicaReglaSO :: Int -> Int -> [Int] -> [Int] -> [Int]
-aplicaReglaSO r radio anteriores celdas
-    | radio==1 = primeraCelda1 : [abs $ regla r (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) - (anteriores !! i) | i <- [1..L.length celdas - 2]] L.++ [ultimaCelda1]
-    | radio==2 = primeraCelda2 : segundaCelda2 : [abs $ reglaVecindadDos r (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) - (anteriores !! i) | i <- [2..L.length celdas - 4]] L.++ [penultimaCelda2, ultimaCelda2]
-    | radio==3 = primeraCelda3 : segundaCelda3 : terceraCelda3 : [abs $ reglaVecindadTres r (celdas !! (i - 3)) (celdas !! (i - 2)) (celdas !! (i - 1)) (celdas !! i) (celdas !! (i + 1)) (celdas !! (i + 2)) (celdas !! (i + 3)) - (anteriores !! i) | i <- [3..L.length celdas - 6]] L.++ [antepenultimaCelda3, penultimaCelda3, ultimaCelda3]
-    | otherwise = error "El radio especificado no es correcto."
-    where
-        -- Primera y última celda para radio 1 de vecindad:
-        primeraCelda1 = abs $ regla r (ultimo celdas) (primero celdas) (primero (L.tail celdas)) - primero anteriores
-        ultimaCelda1 = abs $ regla r (ultimo (L.init celdas)) (ultimo celdas) (primero celdas) - ultimo anteriores
-        -- Primera, segunda, penúltima y última celda para radio 2 de vecindad:
-        primeraCelda2 = abs $ reglaVecindadDos r (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) - primero anteriores
-        segundaCelda2 = abs $ reglaVecindadDos r (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero (L.tail anteriores)
-        penultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) - ultimo (L.init anteriores)
-        ultimaCelda2 = abs $ reglaVecindadDos r (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) - ultimo anteriores
-        -- Celdas de la frontera para radio 3 de vecindad:
-        primeraCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 1) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) - primero anteriores
-        segundaCelda3 = abs $ reglaVecindadTres r (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) - primero (L.tail anteriores)
-        terceraCelda3 = abs $ reglaVecindadTres r (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) (L.tail celdas !! 2) (L.tail celdas !! 3) (L.tail celdas !! 4) - L.tail anteriores !! 1
-        antepenultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 3) (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) - L.init anteriores !! tamLista (L.init anteriores)
-        penultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 2) (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) - ultimo (L.init anteriores)
-        ultimaCelda3 = abs $ reglaVecindadTres r (L.init celdas !! tamLista (L.init celdas) - 1) (L.init celdas !! tamLista (L.init celdas)) (ultimo $ L.init celdas) (ultimo celdas) (primero celdas) (primero $ L.tail celdas) (L.tail celdas !! 1) - ultimo anteriores
-        
--- Realiza un paso de la evolución del AC de segundo orden:
-unPaso :: Int -> Int -> CycleSO Int -> CycleSO Int
-unPaso reg radio ciclo@(CycleSO _ pasado presente) = CycleSO {pasado=nuevoPasado, presente=nuevaVecindad}
+reglaVecindad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int
+reglaVecindad reg radio izq3 izq2 izq1 cen der1 der2 der3
+  | radio==2 = (reg `div` divisorR2) `mod` 2
+  | radio==3 = fromInteger (toInteger reg `div` divisorR3) `mod` 2
+  | otherwise = error "El radio de vecindad no es valido."
   where
-        pas = extraePasado ciclo
-        pres = extraePresente ciclo
-        nuevoPasado = pres
-        nuevaVecindad = aplicaReglaSO reg radio pas pres
+    divisorR2 = 2^(16*izq2 + 8*izq1 + 4*cen + 2*der1 + der2)
+    divisorR3 = 2^(64*izq3 + 32*izq2 + 16*izq1 + 8*cen + 4*der1 + 2*der2 + der3)
+
+aplicaReglaSegundoOrden :: Int -> Int -> [Int] -> [Int] -> [Int]
+aplicaReglaSegundoOrden reg radioVecindad pasado presente
+    | radioVecindad == 1 || radioVecindad == 2 || radioVecindad == 3 = primerasCeldas ++ celdasIntermedias ++ ultimasCeldas
+    | otherwise = error "El radio de vecindad no es valido."
+    where
+      tam = length presente
+      primerasCeldas = obtienePrimerasCeldas pasado presente 0 reg radioVecindad
+      celdasIntermedias = [obtieneNuevaCeldaActual pasado presente i reg radioVecindad | i <- [radioVecindad..(tam-radioVecindad-1)]]
+      ultimasCeldas = obtieneUltimasCeldas pasado presente (tam-1) reg radioVecindad
+
+--Función auxiliar para obtener las nuevas celdas a partir de la regla (celdas intermedias):
+obtieneNuevaCeldaActual :: [Int] -> [Int] -> Int -> Int -> Int -> Int
+obtieneNuevaCeldaActual celdasAnteriores celdasActuales posicionCeldaActual reg radio = 
+  obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
+  where
+    posiciones = [posicionCeldaActual-3,posicionCeldaActual-2,posicionCeldaActual-1,posicionCeldaActual,posicionCeldaActual+1,posicionCeldaActual+2,posicionCeldaActual+3]
+
+obtienePrimerasCeldas :: [Int] -> [Int] -> Int -> Int -> Int -> [Int]
+obtienePrimerasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg radioVecindad
+    | radioVecindad==1 = [primeraCelda]
+    | radioVecindad==2 = [primeraCelda, segundaCelda]
+    | radioVecindad==3 = [primeraCelda, segundaCelda, terceraCelda]
+    | otherwise = error "El radio de vecindad no es valido o las listas estan vacias. En obtienePrimerasCeldas."
+    where
+      tam = length celdasActuales - 1
+      posicionesPrim = [tam-3,tam-2,tam-1,posicionCeldaActual,posicionCeldaActual+1,posicionCeldaActual+2,posicionCeldaActual+3]
+      posicionesSeg = [tam-2,tam-1,posicionCeldaActual,posicionCeldaActual+1,posicionCeldaActual+2,posicionCeldaActual+3,posicionCeldaActual+4]
+      posicionesTerc = [tam-1,posicionCeldaActual,posicionCeldaActual+1,posicionCeldaActual+2,posicionCeldaActual+3,posicionCeldaActual+4,posicionCeldaActual+5]
+      primeraCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesPrim
+      segundaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesSeg
+      terceraCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesTerc
+      
+obtieneUltimasCeldas :: [Int] -> [Int] -> Int -> Int -> Int -> [Int]
+obtieneUltimasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg radioVecindad
+    | radioVecindad==1 = [ultimaCelda]
+    | radioVecindad==2 = [penultimaCelda, ultimaCelda]
+    | radioVecindad==3 = [antepenultimaCelda, penultimaCelda, ultimaCelda]
+    | otherwise = error "El radio de vecindad no es valido o las listas estan vacias. En obtieneUltimasCeldas."
+    where
+      posicionesUlt = [posicionCeldaActual-3,posicionCeldaActual-2,posicionCeldaActual-1,posicionCeldaActual,0,1,2]
+      posicionesPen = [posicionCeldaActual-4,posicionCeldaActual-3,posicionCeldaActual-2,posicionCeldaActual-1,posicionCeldaActual,0,1]
+      posicionesAnte = [posicionCeldaActual-5,posicionCeldaActual-4,posicionCeldaActual-3,posicionCeldaActual-2,posicionCeldaActual-1,posicionCeldaActual,0]
+      ultimaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesUlt
+      penultimaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesPen
+      antepenultimaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesAnte
+
+obtieneCeldaPresente :: [Int] -> [Int] -> Int -> Int -> [Int] -> Int
+obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
+    | radio == 1 = celdaFinalPresenteR1
+    | radio == 2 = celdaFinalPresenteR2
+    | radio == 3 = celdaFinalPresenteR3
+    | otherwise = error "El radio de la vecindad no es valido o el valor anterior de la celda no es 0 o 1."
+    where
+      posMenos3 = primero posiciones
+      posMenos2 = posiciones !! 1
+      posMenos1 = posiciones !! 2
+      pos = posiciones !! 3
+      posMas1 = posiciones !! 4
+      posMas2 = posiciones !! 5
+      posMas3 = posiciones !! 6
+      celdaIz3 = celdasActuales !! posMenos3
+      celdaIz2 = celdasActuales !! posMenos2
+      celdaIz1 = celdasActuales !! posMenos1
+      celdaActual = celdasActuales !! pos
+      celdaDer1 = celdasActuales !! posMas1
+      celdaDer2 = celdasActuales !! posMas2
+      celdaDer3 = celdasActuales !! posMas3
+      celdaCentralPresenteR1 = regla reg celdaIz1 celdaActual celdaDer1
+      celdaCentralPresenteR2 = reglaVecindad reg 2 0 celdaIz2 celdaIz1 celdaActual celdaDer1 celdaDer2 0
+      celdaCentralPresenteR3 = reglaVecindad reg 3 celdaIz3 celdaIz2 celdaIz1 celdaActual celdaDer1 celdaDer2 celdaDer3
+      celdaAnterior = celdasAnteriores !! pos
+      esValorCeldaActualEnPasado1 = celdaAnterior == 1
+      celdaFinalPresenteR1 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR1 - celdaAnterior | otherwise = celdaCentralPresenteR1
+      celdaFinalPresenteR2 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR2 - celdaAnterior | otherwise = celdaCentralPresenteR2
+      celdaFinalPresenteR3 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR3 - celdaAnterior | otherwise = celdaCentralPresenteR3
 
 -- Ejecuta el AC de segundo orden (se realizan varios pasos en la evolución):
-ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
-ejecutaACSO regla radio pasos ciclo = ejecuta regla radio pasos ciclo []
+-- ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
+-- ejecutaACSO regla radio pasos ciclo = ejecuta regla radio pasos ciclo [ciclo]
 
-ejecuta :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int] -> [CycleSO Int]
-ejecuta regla radio pasos ciclo aux
-    | pasos>0 = ejecuta regla radio (pasos-1) nuevoCiclo (nuevoCiclo:ciclo:aux)
-    | otherwise = aux
-    where
-        nuevoCiclo = unPaso regla radio ciclo
+-- ejecuta :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int] -> [CycleSO Int]
+-- ejecuta regla radio pasos ciclo acum
+--     | pasos==0 = acum
+--     | otherwise = ejecuta regla radio (pasos-1) nuevoCiclo (acum ++ [nuevoCiclo])
+--     where
+--       anterior = pasado ciclo
+--       actual = presente ciclo
+--       actualizacion = aplicaReglaSegundoOrden regla radio anterior actual
+--       nuevoCiclo = CycleSO {pasado=actual, presente=actualizacion}
+
+ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
+ejecutaACSO regla radio pasos ciclo
+  | pasos==0 = []
+  | otherwise = nuevoCiclo : ejecutaACSO regla radio (pasos-1) nuevoCiclo
+  where 
+    anterior = pasado ciclo
+    actual = presente ciclo
+    actualizacion = aplicaReglaSegundoOrden regla radio anterior actual
+    nuevoCiclo = CycleSO {pasado=actual, presente=actualizacion}
+
 
 -- Genera el AC de segundo orden:
 generaACSO :: Int -> Int -> Int -> CycleSO Int -> [[Int]]
-generaACSO regla radio pasos ini = vistaPlana <$> ejecutaACSO regla radio pasos ini
+generaACSO regla radio pasos inicial = [pasado inicial, presente inicial] ++ presentes
+  where
+    presentes = vista' <$> ejecutaACSO regla radio pasos inicial
 
 -- Muestra el AC de segundo orden:
-muestraACSO ::Int -> Int -> Int -> Int -> CycleSO Int -> IO ()
-muestraACSO n regla radio pasos ini = P.mapM_ putStrLn $ L.take n automata
+muestraACSO :: Int -> Int -> Int -> Int -> CycleSO Int -> IO ()
+muestraACSO n regla radio pasos inicial = P.mapM_ putStrLn $ L.take n automata
     where
-        automata = fmap muestra . vistaPlana <$> ejecutaACSO regla radio pasos ini
+        automata = fmap muestra . vista' <$> ejecutaACSO regla radio pasos inicial
         muestra 0 = ' '
         muestra 1 = '*'
+
+
+
+
+creaNumeroAleatorioMedianteAC :: IO Int
+creaNumeroAleatorioMedianteAC = do
+  gen <- newStdGen
+  let (semilla, _) = randomR (30, 5000) gen :: (Int, StdGen)
+  --semilla <- now
+  let listaAleatorios = generaAleatoriosL semilla
+      listaAleatoriosBase2 = L.concat (cambioABase2Lista listaAleatorios)            
+      inicia = iniciaAC numCeldas listaAleatoriosBase2
+      automata = generaAC numCeldas (regla 30) inicia
+      indices = [1..genericLength automata-1]
+      listaCentros = L.take 16 [elementoCentral f | f<-automata]
+      num = deListaBinarioANum listaCentros
+  return num
+
+creaACSegundoOrdenRadio2 :: IO ()
+creaACSegundoOrdenRadio2 = do
+  gen <- newStdGen
+  let (semilla1, nuevoGen) = randomR (30, 5000) gen :: (Int, StdGen)
+  let (semilla2, _) = randomR (5000, 90000) gen :: (Int, StdGen)
+  let a1 = L.take numCeldas $ L.concat (cambioABase2Lista (generaAleatoriosL semilla1))
+      a2 = L.take numCeldas $ L.concat (cambioABase2Lista (generaAleatoriosL semilla2))
+      inicio = inicializacion numCeldas a1 a2
+      automata = L.take 5 $ generaACSO reglaAC 2 numPasos inicio
+      tam = L.length automata
+      confACReversible = inicializacion numCeldas (automata !! (tam-1)) (automata !! (tam-2))
+      automataR = L.take 5 $ generaACSO reglaAC 2 numPasos confACReversible
+  imprime "Autómata celular reversible de radio=2 (hacia adelante):"
+  muestraACSO 50 reglaAC 2 numPasos inicio
+  imprime "Autómata celular reversible de radio=2 (hacia atrás):"
+  muestraACSO 50 reglaAC 2 numPasos confACReversible
+
+
+creaACSegundoOrdenRadio3 :: IO ()
+creaACSegundoOrdenRadio3 = do
+  gen <- newStdGen
+  let (semilla1, nuevoGen) = randomR (30, 5000) gen :: (Int, StdGen)
+  let (semilla2, _) = randomR (5000, 90000) gen :: (Int, StdGen)
+  let a1 = L.take numCeldas $ L.concat (cambioABase2Lista (generaAleatoriosL semilla1))
+      a2 = L.take numCeldas $ L.concat (cambioABase2Lista (generaAleatoriosL semilla2))
+      inicio = inicializacion numCeldas a1 a2
+      automata = L.take 5 $ generaACSO reglaAC 3 numPasos inicio
+      tam = L.length automata
+      confACReversible = inicializacion numCeldas (automata !! (tam-1)) (automata !! (tam-2))
+      automataR = L.take 5 $ generaACSO reglaAC 3 numPasos confACReversible
+  imprime "Autómata celular reversible de radio=3 (hacia adelante):"
+  muestraACSO 50 reglaAC 3 numPasos inicio
+  imprime "Autómata celular reversible de radio=3 (hacia atrás):"
+  muestraACSO 50 reglaAC 3 numPasos confACReversible

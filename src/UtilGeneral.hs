@@ -16,7 +16,6 @@ import Prelude as P
 import Data.Char
 import Data.List as L
 import System.Random
-import Data.Bits
 import Data.Word
 import Math.NumberTheory.Logarithms
 import Data.Maybe
@@ -41,7 +40,7 @@ esPrimerElementoCero ls
 
 compruebaPosicionLista :: Int -> [a] -> Bool
 compruebaPosicionLista pos lista
-    | pos >= 0 && pos < tamLista lista = True
+    | pos >= 0 && pos < L.length lista = True
     | otherwise = False
 
     {----------------------------------------------------------------------
@@ -88,13 +87,6 @@ deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
 -- deBitsAInt :: [Bool] -> Int
 -- deBitsAInt = L.foldl (\acc b -> acc `shiftL` 1 .|. fromEnum b) 0
 
--- Transforma un número entero a una lista de bits
-deIntA8Bits :: Int -> [Int]
-deIntA8Bits n = L.reverse $ L.take 8 [convierteACerosYUnos (testBit n i) | i <- [0..finiteBitSize n - 1]]
-
-convierteACerosYUnos :: Bool -> Int
-convierteACerosYUnos b = if b then 1 else 0
-
 ---
 
     {----------------------------------------------------------------------
@@ -112,6 +104,19 @@ snd' (val1, val2, val3) = val2
 --Obtiene el tercer elemento de una tupla de tres elementos
 trd' :: (a, b, c) -> c
 trd' (val1, val2, val3) = val3
+
+fst'' :: (a, b, c, d) -> a
+fst'' (val1, val2, val3, val4) = val1
+
+snd'' :: (a, b, c, d) -> b
+snd'' (val1, val2, val3, val4) = val2
+
+trd'' :: (a, b, c, d) -> c
+trd'' (val1, val2, val3, val4) = val3
+
+-- Obtiene el cuarto elemento de una tupla de cuatro elementos
+frt'' :: (a, b, c, d) -> d 
+frt'' (val1, val2, val3, val4) = val4
 
 -- Obtiene el primer elemento de un "objeto" de tipo Tripleta
 primerElemento :: Tripleta a -> a
@@ -156,22 +161,17 @@ slicing' lista inicio fin aux
         e = lista !! fin
 
 numeroDigitos :: Int -> Int
-numeroDigitos n = tamLista $ digitos n
+numeroDigitos n = L.length $ digitos n
 
 numeroDigitos' :: Int -> Integer
-numeroDigitos' n = tamListaGen $ digitos n
+numeroDigitos' n = L.genericLength $ digitos n
 
 elementoCentral :: [Int] -> Int
 elementoCentral lista = lista !! pos
   where
-    pos = abs $ div (tamLista lista) 2
+    tamLista = L.length lista
+    pos = abs $ div tamLista 2
 
---Obtiene el tamaño de una lista
-tamLista :: [a] -> Int
-tamLista = L.length
-
-tamListaGen :: [a] -> Integer
-tamListaGen = L.genericLength
 
 eliminaCaracterEspecial :: Mensaje -> Mensaje
 eliminaCaracterEspecial = L.filter (/='\n')
@@ -183,8 +183,16 @@ numeroBits numero
     | otherwise = error "El número es menor que 0."
 
 -- Comprueba si un caracter está dentro de caracteres
-estaEnCaracteres :: Char -> String -> Bool
-estaEnCaracteres caracter cs = caracter `L.elem` cs
+estaEnCaracteres :: Char -> Bool
+estaEnCaracteres caracter = caracter `L.elem` caracteres
+
+estaEnAsociaciones :: Int -> Bool
+estaEnAsociaciones numero = numero `L.elem` numerosAsociados
+    where
+        numerosAsociados = L.map snd asociaciones
+
+estaEnAbecedario :: String -> Bool
+estaEnAbecedario xs = not (L.null xs) && L.all (`L.elem` abecedario) xs
 
 -- Obtiene el índice de un elemento de caracteres
 obtieneIndice :: Char -> Int
