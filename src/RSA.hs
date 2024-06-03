@@ -8,7 +8,7 @@ module RSA where
 
 import UtilGeneral
 import UtilCripto
-import AutomataCelular
+import AutomataCelular as AC
 import Tipos
 import Constantes
 
@@ -50,7 +50,7 @@ calculoE' phiN = suchThat (choose (1,phiN)) (sonCoprimos phiN)  --se genera un v
                             Clave pública y privada
     -------------------------------------------------------------------------}
 
--- Funciones creadas gracias a "Criptografía desde el punto de vista de la programación funcional" (con modificaciones personales)
+-- Creación de las claves pública y privada
 clavesPublicaYPrivadaIO :: (Integer, Integer) -> IO ClavePublicaYPrivadaRSA
 clavesPublicaYPrivadaIO pq@(p, q) = do
     semilla <- now
@@ -71,7 +71,6 @@ clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
                             Cifrado y descifrado
     -------------------------------------------------------------------------}
 
--- Las siguientes dos funciones fueron creadas gracias a "Criptografía desde el punto de vista de la programación funcional"
 exponenciacionModular :: Integer -> Integer -> Integer -> Integer
 exponenciacionModular c 1 n = mod c n
 exponenciacionModular c e n
@@ -84,86 +83,40 @@ exponenciacionModular c e n
 
 cifradoRSA :: Mensaje -> Clave -> Mensaje
 cifradoRSA m (n,e) = show listaOperacionModular
-    where 
-        numeroAsociadoAMensaje = transformaTextoEnEntero m 
+    where
+        numeroAsociadoAMensaje = transformaTextoEnEntero m
         listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) e n | c<-numeroAsociadoAMensaje]
 
 descifradoRSA :: Mensaje -> Clave -> Mensaje
 descifradoRSA m (n,d) = show listaOperacionModular
-    where 
-        --numeroAsociadoACifrado = transformaTextoEnEntero m 
+    where
         numeroAsociadoACifrado = read m
         listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) d n | c<-numeroAsociadoACifrado]
 
 
-main = do 
+main = do
     putStrLn "Introduzca el texto a cifrar:"
     texto <- getLine
-    let p1 = 53419 --53419 --100003 --1009 --6070361010663577289 --83   RSA.obtienePrimoAleatorio
-    let p2 = 100057 --90073 --100057 --1223 --3209762499797668553 --97  RSA.obtienePrimoAleatorio
+    let p1 = unsafePerformIO AC.obtienePrimoAleatorio 
+    let p2 = unsafePerformIO AC.obtienePrimoAleatorio
     let phiN = calculoPhi (fromInteger p1) (fromInteger p2)
-        n   = calculoN (fromInteger p1, fromInteger p2)
-        claves = clavesPublicaYPrivada (fromInteger p1, fromInteger p2)
-        privada = parPrivado claves 
-        publica = parPublico claves
-        e = snd publica
-        d = snd privada
-        mensajeNum = transformaTextoEnEntero texto
-        cif = cifradoRSA texto (n,e)
-        descif = descifradoRSA cif (n,d)
-        menDescif = transformaEnteroEnTexto (read descif)
-    imprime ("p1: " ++ show p1 ++ " y p2: " ++ show p2)
-    imprime ("Clave pública: " ++ show publica ++ " y clave privada: " ++ show privada)
+    let n   = calculoN (fromInteger p1, fromInteger p2)
+    let claves = clavesPublicaYPrivada (fromInteger p1, fromInteger p2)
+    let privada = parPrivado claves
+    let publica = parPublico claves
+    let e = snd publica
+    let d = snd privada
+    let cif = cifradoRSA texto (n,e)
+    let descif = descifradoRSA cif (n,d)
+    let menDescif = transformaEnteroEnTexto (read descif)
+    imprime ("Clave pública: " ++ show publica) -- ++ " y clave privada: " ++ show privada)
     imprime "El texto ha sido cifrado."
-    imprime ("Texto cifrado: " ++ show cif)
     putStr "El texto se ha descifrado "
     if menDescif == texto then do
         imprime "correctamente."
-        imprime ("Texto descifrado: " ++ show descif)
+        imprime ("Texto descifrado: " ++ show menDescif)
     else do
         imprime "de forma incorrecta."
-        imprime ("Texto descifrado: " ++ show descif)
-    imprime ("Texto descifrado: " ++ menDescif)
-
-obtienePrimoAleatorio :: IO Integer
-obtienePrimoAleatorio = do
-    gen <- newStdGen
-    let (semillaLista, nuevoGen) = randomR (1, 1000) gen :: (Int, StdGen)
-    let (semillaCeldas, genNuevo) = randomR (100, 6005) nuevoGen :: (Int, StdGen)
-    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        --genera número aleatorio de celdas que tendrá el autómata
-    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         --si el número de celdas que se genera de manera aleatoria es par, le suma uno para que sea impar
-                  | otherwise = numCeldasAlt
-    let listaAleatorios = generaAleatoriosL semillaLista
-    let listaAleatoriosBase2 = concat (cambioABase2Lista listaAleatorios)                --se pasa la lista de aleatorios a base 2 y se aplana
-    --Se crea el autómata para generar el número pseudoaleatorio
-    let inicia = iniciaAC numCeldas listaAleatoriosBase2
-    let automata = generaAC numCeldas (regla 30) inicia
-    let indices = [1..genericLength automata-1]
-    let listaCentros = take 16 [elementoCentral f | f<-automata]
-    let num = deListaBinarioANum listaCentros
-    let control = esPrimo (toInteger num)
-    semillaPrimos <- now
-    let opcion = generaAleatorio' semillaPrimos             --obtiene un número aleatorio entre 0 y 1 para elegir de manera aleatoria si se buscará un primo por encima o por debajo del número
-    --se genera el número primo a partir del AC
-    let p | control = num                                   --si el número ya es primo, no hay que buscarlo
-          | opcion == 0 = obtienePrimoCercanoInf num
-          | otherwise = obtienePrimoCercanoSup num
-    return (toInteger p)
+        imprime ("Texto descifrado: " ++ show menDescif)
 
 
-
-
-
--------------------------------------------------------------------
-
--- Alternativa poco segura: 
-
--- cifraMensaje :: Mensaje -> Clave -> (Mensaje, [Int])
--- cifraMensaje msg (e,n) = (deNumerosATexto numero, preparado)
---     where
---         preparado = prepararTexto msg
---         mensaje = toInteger $ transformaEnNumero preparado
---         numero = digitos $ fromInteger $ exponenciacionModular mensaje e n
-
--- descifraMensaje :: (Mensaje, [Int]) -> Clave -> Mensaje
--- descifraMensaje (msg, control) (e,n) = restaurarTexto control

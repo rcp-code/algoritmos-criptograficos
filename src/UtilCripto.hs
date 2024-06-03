@@ -27,20 +27,6 @@ import Data.Bits
 obtieneGrupoMultiplicativo :: (Integral a, Num a) => a -> [a]
 obtieneGrupoMultiplicativo p = P.filter (\x -> gcd x p == 1) [1..p-1]
 
--- factores :: (Integral a, Num a) => a -> [a]
--- factores n
---     | n<=1 = []
---     | otherwise = factoriza n 2
---     where
---         factoriza 1 _ = []
---         factoriza m c
---             | mod m c==0 = c:factoriza (div m c) c
---             | otherwise = factoriza m (c+1)
-
--- Otra forma de calcular factores (incluye el 1)
--- factores' :: (Integral a, Num a) => a -> [a]
--- factores' n = [x | x <- [1..n], mod n x == 0]
-
 -- Obtiene los factores primos de un número p
 factoresPrimos :: (Integral a, Num a) => a -> [a]
 factoresPrimos p = filtraPrimos [2..p]
@@ -57,10 +43,6 @@ esPrimo n
     | otherwise = not $ L.any (\x -> n `mod` x == 0) [5, 11..raiz n]
     where
         raiz = floor . sqrt . fromIntegral
-
--- Otra forma de comprobar si un número es primo
--- esPrimo' :: (Integral a, Num a) => a -> Bool
--- esPrimo' n = factores n == [n]
 
 -- Comprueba si dos números son coprimos
 sonCoprimos :: (Integral a, Num a) => a -> a -> Bool
@@ -100,29 +82,12 @@ euclides a b
     | b == 0 = a
     | otherwise = euclides b (mod a b)
 
---Algoritmo extendido de Euclides
--- euclidesExtendido :: (Integral a, Num a) => a -> a -> Tripleta a
--- euclidesExtendido a b
---   | b == 0 = Tripleta (1, 0, a)
---   | otherwise = Tripleta (d, x, y - div a b * x)
---   where
---     Tripleta (d, x, y) = euclidesExtendido b (mod a b)
-
 euclidesExtendido :: Integral a => a -> a -> Tripleta a
 euclidesExtendido a 0 = Tripleta (1, 0, a)
 euclidesExtendido a b = Tripleta (t, s - q * t, g)
     where
         (q, r) = a `quotRem` b
         Tripleta (s, t, g) = euclidesExtendido b r
-
---Inverso de un número módulo n
--- inverso :: (Integral a, Num a) => a -> a -> a
--- inverso a n
---     | d /= 1  = error "El numero no tiene inverso modulo n."
---     | otherwise = mod x n
---     where
---         tripleta = euclidesExtendido a n
---         (d, x) = (primerElemento tripleta, segundoElemento tripleta)
 
 inversoModular :: Integer -> Integer -> Integer
 inversoModular a m
@@ -164,10 +129,6 @@ factorizacionFermat' num aux
         x' = x'+1
         y2 = x'^2-num
         raiz = sqrt (fromIntegral y2)
-
-construyeClave :: Integer -> Integer -> Clave
-construyeClave p q = (p,q)
-
 
     {----------------------------------------------------------------------
                     Funciones auxiliares para los mensajes
@@ -232,6 +193,11 @@ transformaIntEnCaracter n
 transformaEnteroEnTexto :: [Int] -> Mensaje
 transformaEnteroEnTexto = L.map transformaIntEnCaracter
 
+transformaListaEnTexto :: [Int] -> Mensaje
+transformaListaEnTexto ns = L.map transformaIntEnCaracter lss
+    where 
+        lss = L.concat $ parte 2 ns
+
 transformaListaNumerosEnNumero :: [Int] -> Int
 transformaListaNumerosEnNumero ns = read $ L.concat [show $ obtieneElemento ns i | (n,i)<-L.zip ns [0..L.length ns-1]]
 
@@ -293,7 +259,7 @@ int2bin n
 bin2int :: [Int] -> Int
 bin2int = L.foldr (\x y -> x + 2*y) 0
 
--- Codificación y decoficación:
+-- Codificación y descodificación:
 
 creaOcteto :: [Int] -> [Int]
 creaOcteto bs = L.take 8 (bs L.++ repeat 0)
@@ -365,6 +331,9 @@ integerToStr m
 -- Introduce dos números en una tupla
 introduceEnTupla :: (Integral a, Num a) => a -> a -> (a, a)
 introduceEnTupla p q = (p,q)
+
+construyeClave :: Integer -> Integer -> Clave
+construyeClave p q = (p,q)
 
 xor' :: Bool -> Bool -> Bool
 xor' True x = not x

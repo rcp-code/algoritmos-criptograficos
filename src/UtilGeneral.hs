@@ -51,13 +51,6 @@ compruebaPosicionLista pos lista
 digitos :: Int -> [Int]
 digitos n = [read [x] :: Int | x<-show n]
 
---Transforma una lista de dígitos en el número que corresponde
--- deDigitosANum :: (Integral a, Num a) => [a] -> a
--- deDigitosANum ns = deDigitosANum' (L.reverse ns)
---     where
---         deDigitosANum' [x] = x
---         deDigitosANum' (x:xs) = x+10*deDigitosANum' xs
-
 deDigitosANum :: (Integral a, Num a) => [a] -> a
 deDigitosANum = L.foldl (\acc x -> acc * 10 + x) 0
 
@@ -78,16 +71,6 @@ deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
         tam = L.length ns
         ps = [0..tam-1]
         union = L.zip ns (L.reverse ps)
-
--- Convierte una lista de bits a un byte
--- bitsAByte :: [Bool] -> Int
--- bitsAByte = L.foldl (\acc b -> acc * 2 + fromEnum b) 0
-
--- -- Convierte una lista de bits a un número entero
--- deBitsAInt :: [Bool] -> Int
--- deBitsAInt = L.foldl (\acc b -> acc `shiftL` 1 .|. fromEnum b) 0
-
----
 
     {----------------------------------------------------------------------
                         Tratamiento de datos
@@ -190,10 +173,7 @@ estaEnAsociaciones :: Int -> Bool
 estaEnAsociaciones numero = numero `L.elem` numerosAsociados
     where
         numerosAsociados = L.map snd asociaciones
-
-estaEnAbecedario :: String -> Bool
-estaEnAbecedario xs = not (L.null xs) && L.all (`L.elem` abecedario) xs
-
+        
 -- Obtiene el índice de un elemento de caracteres
 obtieneIndice :: Char -> Int
 obtieneIndice caracter = primero [i | (c,i)<-asociaciones, c==caracter]

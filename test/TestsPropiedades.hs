@@ -6,7 +6,7 @@ module TestsPropiedades where
 
 import Test.QuickCheck
 import AutomataCelular
-import CifradoBloqueIO
+import CifradoBloque
 import CifradoWolfram
 import Constantes
 import RSA
@@ -32,19 +32,11 @@ prop_numeros_digitos n = n>=0 ==> n == deDigitosANum ds
     where
         ds = digitos n
 
-prop_codifica_descodifica' :: Mensaje -> Bool
-prop_codifica_descodifica' m = m == descodifica (codificaEnBinario m)
-
 prop_codifica_descodifica :: Mensaje -> Property
-prop_codifica_descodifica (c:m) = m /= [] && m/="" && comprobarCaracteresAdmitidos m && (valorNumerico == 32 || valorNumerico == 33 || valorNumerico == 44 || valorNumerico == 46 ||
-                                    (valorNumerico >= 48 && valorNumerico <= 57) || (valorNumerico >= 65 && valorNumerico <= 90) ||
-                                    (valorNumerico >= 97 && valorNumerico <= 122))
+prop_codifica_descodifica (c:m) = m /= [] && m/="" && m/=" " && not (null m) && estaEnCaracteres c
                                     ==> m == descodifica (codificaEnBinario m)
     where
-        valorNumerico = ord c
-
-comprobarCaracteresAdmitidos :: Mensaje -> Bool
-comprobarCaracteresAdmitidos = all isPrint
+        valorNumerico = transformaCaracterEnInt c
 
     {----------------------------------------------------------------------
                 Comprobaciones relativas a AC de segundo orden
@@ -75,88 +67,49 @@ prop_automata_automataR' numeroCeldas regla configuracionesIniciales radioVecind
         automataR = generaACSO reglaAC radioVecindad numPasos inicioR
 
     {----------------------------------------------------------------------
-                    Comprobaciones relativas a asociaciones
-                        y transformaciones de datos
-    ----------------------------------------------------------------------}
-
-prop_int2bin :: Int -> Bool
-prop_int2bin x = bin2int (int2bin y) == y
-    where
-        y = abs x
-
-prop_int2bin64 :: Int -> Bool
-prop_int2bin64 x = bin2int64 (int2bin64 y) == y
-    where
-        y = abs x
-
-prop_strToInteger :: String -> Property
-prop_strToInteger m = m /= [] ==> strToInteger1 m == strToInteger m
-
-prop_integerToStr :: Integer -> Property
-prop_integerToStr n = n>0 ==> integerToStr1 n == integerToStr n
-
-prop_strToInteger_integerToStr :: String -> Property
-prop_strToInteger_integerToStr m = m /= [] && 0 /= (ord . head) m ==> m == (integerToStr . strToInteger) m
-
-prop_integerToStr_strToInteger :: Integer -> Property
-prop_integerToStr_strToInteger n = n > 0 ==> n == (strToInteger . integerToStr) n
-
-    {----------------------------------------------------------------------
                 Comprobaciones relativas a funciones de RSA
     ----------------------------------------------------------------------}
 
-prop_clavePrivada :: Integer -> Integer -> Integer -> Property
-prop_clavePrivada e d phiN = e>=2 && d>=2 && phiN>=2 && esPrimo e && esPrimo d && e>=100 && d>=100 ==> d*e == mod 1 phiN
+prop_clavePrivada :: Integer -> Integer -> Property
+prop_clavePrivada p q = e>=2 && d>=2 && phiN>=2 && esPrimo p && esPrimo q && esPrimo e && esPrimo d ==> d*e == mod 1 phiN
+    where
+        phiN = calculoPhi p q
+        clavePrivYPub = clavesPublicaYPrivada (p,q)
+        clavePublica = parPublico clavePrivYPub
+        clavePrivada = parPrivado clavePrivYPub
+        e = snd clavePublica
+        n = fst clavePublica
+        d = snd clavePrivada
 
 prop_exponenciacionModular :: Integer -> Integer -> Integer -> Property
 prop_exponenciacionModular c e n = e>0 && n>0 && esPrimo e ==> exponenciacionModular c e n == mod exp n
     where
         exp = c^e
 
-prop_cifradoRSA :: Mensaje -> Clave -> Property
-prop_cifradoRSA m = undefined
-
-prop_descifradoRSA :: Mensaje -> Clave -> Property
-prop_descifradoRSA m = undefined
-
-prop_cifradoRSA_descifradoRSA :: Mensaje -> Clave -> Clave -> Property
-prop_cifradoRSA_descifradoRSA (c:m) clavePublica clavePrivada = not (null m) && comprobarCaracteresAdmitidos m && (valorNumerico == 32 || valorNumerico == 33 || valorNumerico == 44 || valorNumerico == 46 ||
-                                    (valorNumerico >= 48 && valorNumerico <= 57) || (valorNumerico >= 65 && valorNumerico <= 90) ||
-                                    (valorNumerico >= 97 && valorNumerico <= 122)) && n>0 && esPrimo e && esPrimo d && e/=d && d>=100 && e>=100
-                                            ==> m == descifradoRSA (cifradoRSA m clavePublica) clavePrivada
-                                            where
-                                                n = fst clavePublica
-                                                e = snd clavePublica
-                                                d = snd clavePrivada
-                                                valorNumerico = ord c
+prop_cifradoRSA_descifradoRSA :: Mensaje -> Property
+prop_cifradoRSA_descifradoRSA (c:m) = not (null m) && m/="" && esPrimo e && esPrimo d && e/=d && d>=100 && e>=100 ==> m == textoDescifrado
+    where
+        p = unsafePerformIO obtienePrimoAleatorio
+        q = unsafePerformIO obtienePrimoAleatorio
+        clavePrivYPub = clavesPublicaYPrivada (p,q)
+        clavePublica = parPublico clavePrivYPub
+        clavePrivada = parPrivado clavePrivYPub
+        e = snd clavePublica
+        n = fst clavePublica
+        d = snd clavePrivada
+        textoCifrado = cifradoRSA m clavePublica
+        textoDescifrado = descifradoRSA textoCifrado clavePrivada
 
     {----------------------------------------------------------------------
                 Comprobaciones relativas a cifrado de bloques 
                         basado en AC de segundo orden
     ----------------------------------------------------------------------}
 
-prop_cifradoSimplificado_descifradoSimplificado' :: [Int] -> [Int] -> Int -> Int -> Int -> Bool
-prop_cifradoSimplificado_descifradoSimplificado' clave texto regla radio pasos = texto == primero datosDescifrados
-    where
-        datosCifrados = versionSimplificadaCifrado clave texto regla radio pasos
-        datosDescifrados = versionSimplificadaDescifrado clave (reverse datosCifrados) regla radio pasos
-
-
-prop_cifradoSimplificado_descifradoSimplificado :: [Int] -> [Int] -> Int -> Int -> Int -> Property
-prop_cifradoSimplificado_descifradoSimplificado clave texto regla radio pasos = texto /= [] && pasos>0 && clave /= [] && regla>0 && (radio>=1 && radio<=3) &&
-                                length clave >= 3 && length texto >=3 && all compruebaElemento clave && all compruebaElemento texto
-                                ==> texto == primero datosDescifrados
-    where
-        datosCifrados = versionSimplificadaCifrado clave texto regla radio pasos
-        datosDescifrados = versionSimplificadaDescifrado clave (reverse datosCifrados) regla radio pasos
-        compruebaElemento x = x==0 || x==1
-        
-
 prop_cifrado_descifrado_conAutomatasDeSegundoOrden :: Mensaje -> Property
 prop_cifrado_descifrado_conAutomatasDeSegundoOrden texto = condiciones ==> texto == cambiaListasEnterosATexto textoDescifrado
-    where 
+    where
         filtrado = filter estaEnCaracteres texto
         condiciones = texto /= [] && (length filtrado == length texto)
         textoCod = preparaTexto texto
-        datosCifrado@(textoCifrado, residuo, nuevoCAS, clave) = unsafePerformIO $ cifrado textoCod
-        (textoDescifrado, _, _) = unsafePerformIO $ descifrado clave nuevoCAS textoCifrado residuo
+        datosCifrado@(textoCifrado, residuo, nuevoCAS, clave) = cifrado textoCod
+        (textoDescifrado, _, _) = descifrado clave nuevoCAS textoCifrado residuo

@@ -3,7 +3,7 @@ module AutomataCelular where
 
     {----------------------------------------------------------------------
                   Incluye las funciones necesarias para 
-                      los autómatas celulares.
+                      crear los autómatas celulares.
     ----------------------------------------------------------------------}
 
 import Tipos
@@ -19,7 +19,9 @@ import UtilIO
 import UtilCripto
 
 
-
+    {-------------------------------------------------------------------------
+                      Autómatas celulares elementales
+    -------------------------------------------------------------------------}
 instance Comonad Cycle where
   extract (Cycle _ _ cen _) = cen
   duplicate cel@(Cycle n _ _ _) = deListaACiclo $ Inf.take n $ Inf.iterate cambia cel
@@ -181,20 +183,6 @@ obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
       celdaFinalPresenteR2 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR2 - celdaAnterior | otherwise = celdaCentralPresenteR2
       celdaFinalPresenteR3 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR3 - celdaAnterior | otherwise = celdaCentralPresenteR3
 
--- Ejecuta el AC de segundo orden (se realizan varios pasos en la evolución):
--- ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
--- ejecutaACSO regla radio pasos ciclo = ejecuta regla radio pasos ciclo [ciclo]
-
--- ejecuta :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int] -> [CycleSO Int]
--- ejecuta regla radio pasos ciclo acum
---     | pasos==0 = acum
---     | otherwise = ejecuta regla radio (pasos-1) nuevoCiclo (acum ++ [nuevoCiclo])
---     where
---       anterior = pasado ciclo
---       actual = presente ciclo
---       actualizacion = aplicaReglaSegundoOrden regla radio anterior actual
---       nuevoCiclo = CycleSO {pasado=actual, presente=actualizacion}
-
 ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
 ejecutaACSO regla radio pasos ciclo
   | pasos==0 = []
@@ -222,6 +210,32 @@ muestraACSO n regla radio pasos inicial = P.mapM_ putStrLn $ L.take n automata
 
 
 
+
+
+obtienePrimoAleatorio :: IO Integer
+obtienePrimoAleatorio = do
+    gen <- newStdGen
+    let (semillaLista, nuevoGen) = randomR (1, 1000) gen :: (Int, StdGen)
+    let (semillaCeldas, genNuevo) = randomR (100, 6005) nuevoGen :: (Int, StdGen)
+    let numCeldasAlt = generaAleatorio semillaCeldas minCeldas maxCeldas        --genera número aleatorio de celdas que tendrá el autómata
+    let numCeldas | even numCeldasAlt = numCeldasAlt +1                         --si el número de celdas que se genera de manera aleatoria es par, le suma uno para que sea impar
+                  | otherwise = numCeldasAlt
+    let listaAleatorios = generaAleatoriosL semillaLista
+    let listaAleatoriosBase2 = L.concat (cambioABase2Lista listaAleatorios)                --se pasa la lista de aleatorios a base 2 y se aplana
+    --Se crea el autómata para generar el número pseudoaleatorio
+    let inicia = iniciaAC numCeldas listaAleatoriosBase2
+    let automata = generaAC numCeldas (regla 30) inicia
+    let indices = [1..genericLength automata-1]
+    let listaCentros = L.take 14 [elementoCentral f | f<-automata]
+    let num = deListaBinarioANum listaCentros
+    let control = esPrimo (toInteger num)
+    semillaPrimos <- now
+    let opcion = generaAleatorio' semillaPrimos             --obtiene un número aleatorio entre 0 y 1 para elegir de manera aleatoria si se buscará un primo por encima o por debajo del número
+    --se genera el número primo a partir del AC
+    let p | control = num                                   --si el número ya es primo, no hay que buscarlo
+          | opcion == 0 = obtienePrimoCercanoInf num
+          | otherwise = obtienePrimoCercanoSup num
+    return (toInteger p)
 
 creaNumeroAleatorioMedianteAC :: IO Int
 creaNumeroAleatorioMedianteAC = do

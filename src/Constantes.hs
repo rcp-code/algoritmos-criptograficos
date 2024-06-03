@@ -18,10 +18,7 @@ letras :: String
 letras = ['a'..'z'] ++ ['A'..'Z']
 
 caracteresEspeciales :: String
-caracteresEspeciales = ".:,;!?@$%&|~/()=[]<>-_+*^ºª\n\t\"\'"
-
-abecedario :: String
-abecedario = ['A'..'Z']
+caracteresEspeciales = "\".:,;!?@$%&|~/()=[]<>-_+*^"
 
 numeros :: [Int]
 numeros = [10..]
@@ -56,9 +53,6 @@ numPasos = 500
 reglaAC :: Int
 reglaAC = 30
 
--- pasosEvolucion :: Int
--- pasosEvolucion = 10
-
 numPasosCALR :: Int
 numPasosCALR = 19 --4
 
@@ -66,10 +60,10 @@ numPasosCAC :: Int
 numPasosCAC = 17 --4
 
 numPasosCAS :: Int
-numPasosCAS = 5     --NO CAMBIAR BAJO NINGÚN CONCEPTO
+numPasosCAS = 5     
 
 numeroRondas :: Int
-numeroRondas = 15
+numeroRondas = 2
 
 numBits :: Int
 numBits = 64
