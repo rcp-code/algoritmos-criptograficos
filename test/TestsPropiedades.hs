@@ -124,10 +124,9 @@ prop_cifrado_descifrado_Wolfram mensaje clave = condiciones ==> mensaje == texto
     ----------------------------------------------------------------------}
 
 prop_cifrado_descifrado_conAutomatasDeSegundoOrden :: Mensaje -> Property
-prop_cifrado_descifrado_conAutomatasDeSegundoOrden texto = condiciones ==> texto == cambiaListasEnterosATexto textoDescifrado
+prop_cifrado_descifrado_conAutomatasDeSegundoOrden texto = condiciones ==> texto == textoDescifrado
     where
         filtrado = filter estaEnCaracteres texto
         condiciones = texto /= [] && (length filtrado == length texto)
-        textoCod = preparaTexto texto
-        datosCifrado@(textoCifrado, residuo, nuevoCAS, clave) = cifrado textoCod
+        datosCifrado@(textoCifrado, residuo, nuevoCAS, clave) = cifrado texto
         (textoDescifrado, _, _) = descifrado clave nuevoCAS textoCifrado residuo
