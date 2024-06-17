@@ -20,9 +20,9 @@
   (major1) == 4 && (major2) <  2 || \
   (major1) == 4 && (major2) == 2 && (minor) <= 5)
 #endif /* MIN_VERSION_Crypto */
-/* package QuickCheck-2.15 */
+/* package QuickCheck-2.15.0.1 */
 #ifndef VERSION_QuickCheck
-#define VERSION_QuickCheck "2.15"
+#define VERSION_QuickCheck "2.15.0.1"
 #endif /* VERSION_QuickCheck */
 #ifndef MIN_VERSION_QuickCheck
 #define MIN_VERSION_QuickCheck(major1,major2,minor) (\

@@ -20,25 +20,19 @@ import Test.QuickCheck
 import System.Random
 
 
-
+--Cálculo de phi(n)
 calculoPhi :: Integer -> Integer -> Integer
 calculoPhi p q = abs (p-1)*(q-1)
-
 
     {-------------------------------------------------------------------------
                                 Clave pública
     -------------------------------------------------------------------------}
 
+--Cálculo de n
 calculoN :: (Integer, Integer) -> Integer
 calculoN (p, q) = abs (p*q)
 
-claveNE :: (Integer, Integer) -> Int -> Clave
-claveNE pq@(p, q) semilla = primero [(n, toInteger aleatorio) | aleatorio<-generaAleatoriosL semilla, sonCoprimos aleatorio (fromInteger phi)]
-    where
-        phi = calculoPhi p q
-        n = calculoN pq
-
--- Otra versión: extraído (este y el siguiente) de "Criptografía desde el punto de vista de la programación funcional"
+--Cálculo del exponente de cifrado e (perteneciente a la clave pública)
 calculoE :: Integer -> Integer
 calculoE phiN = unsafePerformIO (generate (calculoE' phiN))
 
@@ -71,22 +65,21 @@ clavesPublicaYPrivada pq = unsafePerformIO (clavesPublicaYPrivadaIO pq)
                             Cifrado y descifrado
     -------------------------------------------------------------------------}
 
+--Realiza la exponenciación modular
 exponenciacionModular :: Integer -> Integer -> Integer -> Integer
-exponenciacionModular c 1 n = mod c n
-exponenciacionModular c e n
-    | even e = exponenciacionModular m de n
-    | otherwise = mod exp n
-    where
-        m = mod (c*c) n
-        de = div e 2
-        exp = c*exponenciacionModular c (e-1) n
+exponenciacionModular c 1 n = c `mod` n
+exponenciacionModular c e n 
+    | even e = exponenciacionModular (c*c `mod` n) (div e 2) n
+    | otherwise = (c*exponenciacionModular c (e-1) n) `mod` n
 
+--Cifrado RSA: recibe un texto y la clave pública para realizar el cifrado
 cifradoRSA :: Mensaje -> Clave -> Mensaje
 cifradoRSA m (n,e) = show listaOperacionModular
     where
         numeroAsociadoAMensaje = transformaTextoEnEntero m
         listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) e n | c<-numeroAsociadoAMensaje]
 
+--Descifrado RSA: recibe un texto y la clave privada para realizar el descifrado
 descifradoRSA :: Mensaje -> Clave -> Mensaje
 descifradoRSA m (n,d) = show listaOperacionModular
     where
@@ -94,7 +87,8 @@ descifradoRSA m (n,d) = show listaOperacionModular
         listaOperacionModular = [fromInteger $ exponenciacionModular (toInteger c) d n | c<-numeroAsociadoACifrado]
 
 
-main = do
+mainRSA :: IO ()
+mainRSA = do
     putStrLn "Introduzca el texto a cifrar:"
     texto <- getLine
     let p1 = unsafePerformIO AC.obtienePrimoAleatorio 
@@ -108,8 +102,11 @@ main = do
     let d = snd privada
     let cif = cifradoRSA texto (n,e)
     let descif = descifradoRSA cif (n,d)
-    let menDescif = transformaEnteroEnTexto (read descif)
-    imprime ("Clave pública: " ++ show publica) -- ++ " y clave privada: " ++ show privada)
+    let menDescif = transformaListaEnTexto (read descif)
+    -- imprime ("Codificado: " ++ show (transformaTextoEnEntero texto))
+    imprime ("Clave pública: " ++ show publica)
+    -- imprime ("Cifrado: " ++ show cif)
+    -- imprime ("Descifrado: " ++ show descif)
     imprime "El texto ha sido cifrado."
     putStr "El texto se ha descifrado "
     if menDescif == texto then do

@@ -25,19 +25,17 @@ import GHC.Enum
                             Comprobaciones
     ----------------------------------------------------------------------}
 
--- Comprueba si la lista está vacía
+--Comprueba si la lista está vacía
 esVacia :: [a] -> Bool
 esVacia = L.null
 
--- Comprueba si un número es entero
-esEntero :: (RealFrac a) => a -> Bool
-esEntero x = snd (properFraction x) == 0
-
+--Comprueba si el primer elemento de una lista es 0
 esPrimerElementoCero :: (Eq a, Num a) => [a] -> Bool
 esPrimerElementoCero ls
     | primero ls==0 = True
     | otherwise = False
 
+--Comprueba que una posición está en una lista dada
 compruebaPosicionLista :: Int -> [a] -> Bool
 compruebaPosicionLista pos lista
     | pos >= 0 && pos < L.length lista = True
@@ -51,9 +49,11 @@ compruebaPosicionLista pos lista
 digitos :: Int -> [Int]
 digitos n = [read [x] :: Int | x<-show n]
 
+--Transforma una lista de dígitos en el número correspondiente
 deDigitosANum :: (Integral a, Num a) => [a] -> a
 deDigitosANum = L.foldl (\acc x -> acc * 10 + x) 0
 
+--Transforma un número entero en su equivalente binario (lista)
 cambioABase2 :: (Integral a, Num a) => a -> [a]
 cambioABase2 num = cambioABase2' num []
     where
@@ -62,9 +62,11 @@ cambioABase2 num = cambioABase2' num []
             | num == 1 = 1:listaRestos
             | otherwise = cambioABase2' (div num 2) (mod num 2:listaRestos)     --se añade el resto a la lista de los restos ya calculados  
 
+--Transforma una lista de enteros en una lista de binario (lista de listas)
 cambioABase2Lista :: (Integral a, Num a) => [a] -> [[a]]
 cambioABase2Lista ns = [cambioABase2 x | x<-ns]
 
+--Transforma una lista de binarios a su número correpondiente en base 10
 deListaBinarioANum :: Num a => [a] -> a
 deListaBinarioANum ns = abs $ L.sum [(2^p)*x | (x,p)<-union]
     where
@@ -88,49 +90,43 @@ snd' (val1, val2, val3) = val2
 trd' :: (a, b, c) -> c
 trd' (val1, val2, val3) = val3
 
+--Obtiene el tercer elemento de una tupla de cuatro elementos
 fst'' :: (a, b, c, d) -> a
 fst'' (val1, val2, val3, val4) = val1
 
+--Obtiene el tercer elemento de una tupla de cuatro elementos
 snd'' :: (a, b, c, d) -> b
 snd'' (val1, val2, val3, val4) = val2
 
+--Obtiene el tercer elemento de una tupla de cuatro elementos
 trd'' :: (a, b, c, d) -> c
 trd'' (val1, val2, val3, val4) = val3
 
--- Obtiene el cuarto elemento de una tupla de cuatro elementos
+--Obtiene el cuarto elemento de una tupla de cuatro elementos
 frt'' :: (a, b, c, d) -> d 
 frt'' (val1, val2, val3, val4) = val4
 
--- Obtiene el primer elemento de un "objeto" de tipo Tripleta
-primerElemento :: Tripleta a -> a
-primerElemento (Tripleta (p, _, _)) = p
-
--- Obtiene el segundo elemento de un "objeto" de tipo Tripleta
-segundoElemento :: Tripleta a -> a
-segundoElemento (Tripleta (_, s, _)) = s
-
--- Obtiene el tercer elemento de un "objeto" de tipo Tripleta
-tercerElemento :: Tripleta a -> a
-tercerElemento (Tripleta (_, _, t)) = t
-
--- Intercambia los elementos de una tupla:
+--Intercambia los elementos de una tupla de dos elementos:
 intercambia :: (a, b) -> (b, a)
 intercambia (x,y) = (y,x)
 
--- Obtiene el primer elemento de una lista
+--Obtiene el primer elemento de una lista
 primero :: [a] -> a
 primero = L.head
 
--- Obtiene el último elemento de una lista
+--Obtiene el último elemento de una lista
 ultimo :: [a] -> a
 ultimo = L.last
 
+--Obtiene el elemento iésimo de una lista
 obtieneElemento :: [a] -> Int -> a
 obtieneElemento lista i = lista !! i
 
+--Obtiene una sublista de una lista de listas
 obtieneSubLista :: [[a]] -> Int -> [a]
 obtieneSubLista listas i = listas !! i
 
+--Obtiene la sublista a partir de dos posiciones, ambas posiciones incluidas
 slicing :: [a] -> Int -> Int -> [a]
 slicing [] _ _ = []
 slicing lista inicio fin = slicing' lista inicio fin []
@@ -143,32 +139,31 @@ slicing' lista inicio fin aux
     where
         e = lista !! fin
 
+--Número de dígitos de un número
 numeroDigitos :: Int -> Int
 numeroDigitos n = L.length $ digitos n
 
 numeroDigitos' :: Int -> Integer
 numeroDigitos' n = L.genericLength $ digitos n
 
+--Obtiene el elemento central de una lista
 elementoCentral :: [Int] -> Int
 elementoCentral lista = lista !! pos
   where
     tamLista = L.length lista
     pos = abs $ div tamLista 2
 
-
-eliminaCaracterEspecial :: Mensaje -> Mensaje
-eliminaCaracterEspecial = L.filter (/='\n')
-
--- Obtiene el número de bits de un entero
+--Obtiene el número de bits de un número entero
 numeroBits :: Integer -> Int
 numeroBits numero
     | numero>0 = succ $ integerLog2 numero
     | otherwise = error "El número es menor que 0."
 
--- Comprueba si un caracter está dentro de caracteres
+--Comprueba si un caracter está dentro de la lista de caracteres
 estaEnCaracteres :: Char -> Bool
 estaEnCaracteres caracter = caracter `L.elem` caracteres
 
+--Comprueba si un número está dentro de la lista de asociaciones
 estaEnAsociaciones :: Int -> Bool
 estaEnAsociaciones numero = numero `L.elem` numerosAsociados
     where

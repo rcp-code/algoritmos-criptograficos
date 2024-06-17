@@ -19,22 +19,19 @@ import GHC.IO (unsafePerformIO)
                 Cifrado de bloque basado en AC de segundo orden
     ----------------------------------------------------------------------}
 
+--Creación de datos aleatorios para la versión simplificada del cifrado
 datosInicialesAleatorios :: Int -> [Int]
 datosInicialesAleatorios semilla = concat (cambioABase2Lista (generaAleatoriosL semilla))
 
-divideEnDosSubBloques :: [Int] -> [[Int]]
-divideEnDosSubBloques [] = error "El bloque de datos esta vacio, no se puede realizar la particion."
-divideEnDosSubBloques bloque = [primeraSublista, segundaSublista]
+--Divide una lista en dos sublistas
+divideEnDosSublistas :: [Int] -> [[Int]]
+divideEnDosSublistas [] = error "El bloque de datos esta vacio, no se puede realizar la particion."
+divideEnDosSublistas bloque = [primeraSublista, segundaSublista]
     where
         tam = length bloque - 1
         tamParticion = div tam 2
         primeraSublista = slicing bloque 0 tamParticion
         segundaSublista = slicing bloque (tamParticion + 1) tam
-
-reglaReversible :: Int -> Int -> Int
-reglaReversible r1 radioVecindad = abs (2^d - r1 - 1)
-    where
-        d = 2^(2*radioVecindad+1)
 
 {--  Clave de 224 bits:
         - 0-31: CAL rule -> 32 bits de CAL
@@ -42,8 +39,8 @@ reglaReversible r1 radioVecindad = abs (2^d - r1 - 1)
         - 64-191: CAC rule -> 128 bits para aplicar XOR a CAC
         - 192-223: CAS rule -> 32 bits para aplicar XOR a CAS -}
 
--- Inicializa la clave privada de manera aleatoria (de aquí se tomarán las reglas para cada uno de los autómatas celulares 
--- implicados en los procesos de cifrado y descifrado)
+{-  Inicializa la clave privada de manera aleatoria (de aquí se tomarán las reglas para cada uno de los autómatas celulares 
+ implicados en los procesos de cifrado y descifrado) -}
 inicializaClavePrivada :: [Int] -> ClavePrivada
 inicializaClavePrivada semillas = ClavePrivada {k=claveCompleta, kCAL=reglaCAL, kCAR=reglaCAR, kCAC=reglaCAC, kCAS=reglaCAS}
     where 
@@ -55,33 +52,37 @@ inicializaClavePrivada semillas = ClavePrivada {k=claveCompleta, kCAL=reglaCAL, 
         reglaCAR = agregaCerosAIzquierda (cambioABase2 numeroAleatorio2) 32                 
         reglaCAC = agregaCerosAIzquierda (cambioABase2 numeroAleatorio3) 128                
         reglaCASCompleta = agregaCerosAIzquierda (cambioABase2 numeroAleatorio4) 32         
-        reglaCAS = divideEnDosSubBloques reglaCASCompleta
+        reglaCAS = divideEnDosSublistas reglaCASCompleta
         claveCompleta = concat [reglaCAL, reglaCAR, reglaCAC, reglaCASCompleta]
 
     {----------------------------------------------------------------------
                             Versión simplificada
     ----------------------------------------------------------------------}
 
+--Inicializa el AC de segundo orden con las dos primeras configuraciones
 inicializaACSegundoOrden :: Int -> [Int] -> [Int] -> CycleSO Int
 inicializaACSegundoOrden n datos1 datos2 = CycleSO {nCeldas=n, pasado=take n datos1, presente=datos2}
 
+--Versión simplificada del cifrado de bloques del que se obtiene tanto el texto cifrado como los datos residuales cifrados
 versionSimplificadaCifrado :: [Int] -> [Int] -> Int -> Int -> Int -> [[Int]]
-versionSimplificadaCifrado clave texto regla radio pasos = [datosCifrados, datosRes]
+versionSimplificadaCifrado clave texto regla radio pasos = [datosCifrados, datosResidualesCifrados]
     where
-        aleatorios = datosInicialesAleatorios 1234
+        numAleatorio = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        aleatorios = datosInicialesAleatorios numAleatorio
         inicial = inicializaACSegundoOrden (length texto) aleatorios texto
         automata = generaACSO regla radio pasos inicial
         tamAutomata = length automata
         datosResiduales = ultimo automata
         datosCifrados = obtieneSubLista automata (tamAutomata - 2)
-        datosRes = xorl clave datosResiduales
+        datosResidualesCifrados = xorl clave datosResiduales
 
+--Versión simplificada del descifrado de bloques del que se obtiene tanto el texto cifrado como los datos residuales cifrados
 versionSimplificadaDescifrado :: [Int] -> [[Int]] -> Int -> Int -> Int -> [[Int]]
 versionSimplificadaDescifrado clave datos regla radio pasos = [descifrado, datosInicialesAleatorios]
     where
-        datosRes = ultimo datos
+        datosResidualesCifrados = ultimo datos
         datosCifrados = primero datos
-        datosResiduales = xorl clave datosRes
+        datosResiduales = xorl clave datosResidualesCifrados
         inicial = inicializaACSegundoOrden (length datosCifrados) datosResiduales datosCifrados                                                   -- radio de vecindad: 1
         automata = generaACSO regla radio pasos inicial
         tamAutomata = length automata
@@ -99,7 +100,7 @@ versionSimplificadaDescifrado clave datos regla radio pasos = [descifrado, datos
                                     Cifrado
     ----------------------------------------------------------------------}
 
--- Desplaza bits n veces a derecha o izquierda
+--Desplaza bits n veces a derecha o izquierda
 desplazaBits :: [Int] -> Int -> Char -> [Int]
 desplazaBits qn n desplazamiento
     | desplazamiento=='L' = drop n qn ++ take n qn   --desplaza bits a la izquierda
@@ -108,7 +109,7 @@ desplazaBits qn n desplazamiento
     where
         m = length qn - n
 
--- Función que genera el autómata que obtiene el número de desplazamiento de bits para la operación de desplazamiento (Shift)
+--Genera el autómata que obtiene el número de desplazamiento de bits para la operación Shift (desplazamiento)
 cas :: Int -> Int -> [[Int]] -> (Int, [[Int]])
 cas regla pasos datos = (numeroDespl, nuevoInicioCAS)
     where
@@ -116,10 +117,10 @@ cas regla pasos datos = (numeroDespl, nuevoInicioCAS)
         automata = generaACSO regla 2 pasos inicial
         tamAutomata = length automata
         ns = take 5 [elementoCentral f | f<-tail $ tail automata]                           -- primera parte de ns con las celdas centrales del autómata
-        numeroDespl = deListaBinarioANum ns                                                         -- ns es el número de celdas que se van a desplazar a izquierda o derecha
+        numeroDespl = deListaBinarioANum ns                                                 -- ns es el número de celdas que se van a desplazar a izquierda o derecha
         nuevoInicioCAS = [automata !! (tamAutomata-2), automata !! (tamAutomata-1)]
 
--- Función que genera los autómatas izquierdo y derecho (ambos de 32 bits) para el proceso de cifrado y descifrado
+--Genera los autómatas izquierdo y derecho (ambos de 32 bits) para el proceso de cifrado y descifrado
 calr :: Int -> Int -> [Int] -> [Int] -> [[Int]]
 calr regla pasos q0 q1 = [qn1L, qnL]
     where
@@ -129,7 +130,7 @@ calr regla pasos q0 q1 = [qn1L, qnL]
         qnL = ultimo automata
         qn1L = automata !! (tam-2)
 
--- Función que genera el autómata de 64 bits para el proceso de cifrado y descifrado
+--Genera el autómata de 64 bits para el proceso de cifrado y descifrado
 cac :: Int -> Int -> [Int] -> [Int] -> [Int] -> [Int] -> [[Int]]
 cac regla pasos qn1R qnL qn1L qnR = [qn_1C, qnC]
     where
@@ -141,25 +142,25 @@ cac regla pasos qn1R qnL qn1L qnR = [qn_1C, qnC]
         qn_1C = automata !! (tam-2)
         qnC = ultimo automata
 
--- Proceso inicial de la ronda de transformaciones
+--Proceso inicial de la ronda de transformaciones: divide ambos bloques (de aleatorios y texto) en dos sublistas
 procesoInicial :: [[Int]] -> ([[Int]], [[Int]])
 procesoInicial inicial = (datosAleatorios, texto)
     where
-        datosAleatorios = divideEnDosSubBloques $ primero inicial
-        texto = divideEnDosSubBloques $ ultimo inicial
+        datosAleatorios = divideEnDosSublistas $ primero inicial
+        texto = divideEnDosSublistas $ ultimo inicial
 
--- Proceso que genera el autómata CAS
+--Proceso global que genera el autómata CAS que genera el número de bits de desplazamiento y las dos últimas configuraciones del AC
 procesoAutomataS :: Int -> [[Int]] -> (Int, [[Int]])
 procesoAutomataS regla = cas regla numPasosCAS
 
--- Proceso que genera el autómata izquierdo y derecho y devuelve el par con las dos últimas configuraciones del izquierdo y el derecho
+--Proceso global que genera el autómata izquierdo y derecho y devuelve el par con las dos últimas configuraciones del izquierdo y el derecho
 procesoAutomataLR :: Int -> Int -> [[Int]] -> [[Int]] -> ([[Int]], [[Int]])
 procesoAutomataLR reglaL reglaR aleatorios texto = (configAutomataIzquierdo, configAutomataDerecho)
     where
         configAutomataIzquierdo = calr reglaL numPasosCALR (primero aleatorios) (primero texto)
         configAutomataDerecho = calr reglaR numPasosCALR (ultimo aleatorios) (ultimo texto)
 
--- Proceso que genera el autómata CAC tras realizar la operación de desplazamiento
+--Proceso global que genera el autómata CAC tras realizar la operación de desplazamiento y devuelve las dos últimas configuraciones
 procesoAutomataC :: Int -> ([[Int]], [[Int]]) -> Int -> [[Int]]
 procesoAutomataC regla (confIzquierda, confDerecha) desplazamientoBits = cac regla numPasosCAC qn1R qnL' qn1L qnR'
     where
@@ -168,7 +169,7 @@ procesoAutomataC regla (confIzquierda, confDerecha) desplazamientoBits = cac reg
         qn1L = primero confIzquierda
         qn1R = primero confDerecha
 
--- Ronda individual de transformaciones de datos dentro del proceso de cifrado
+--Ronda individual de transformaciones de datos dentro del proceso de cifrado
 rondaTransformaciones :: [[Int]] -> [[Int]] -> ClavePrivada -> ([[Int]], [[Int]])
 rondaTransformaciones datosCAS inicial clave = ([textoCifrado, datosResiduales], nuevoInicioCAS)
     where
@@ -177,36 +178,37 @@ rondaTransformaciones datosCAS inicial clave = ([textoCifrado, datosResiduales],
         reglaCAR = deListaBinarioANum (kCAR clave)
         reglaCAC = deListaBinarioANum (kCAC clave)
         (subBloquesAleatorios, subBloquesTextoPlano) = procesoInicial inicial
-        (numDesplazamientoBits, nuevoInicioCAS) = procesoAutomataS reglaCAS datosCAS         -- HA SIDO CAMBIADA LA REGLA (Y ABAJO TAMBIÉN)
+        (numDesplazamientoBits, nuevoInicioCAS) = procesoAutomataS reglaCAS datosCAS         
         (confIzquierda, confDerecha) = procesoAutomataLR reglaCAL reglaCAR subBloquesAleatorios subBloquesTextoPlano
         automataCAC = procesoAutomataC reglaCAC (confIzquierda, confDerecha) numDesplazamientoBits
         textoCifrado = ultimo automataCAC
         datosResiduales = primero automataCAC
 
--- n rondas a las que se van a someter los datos iniciales y el texto plano para el cifrado
+--n rondas a las que se van a someter los datos iniciales y el texto plano para el cifrado
 nrondas :: Int -> ClavePrivada -> [[Int]] -> [[Int]] -> ([[Int]], [[Int]])
 nrondas 0 _ inicial datosCAS = (inicial, datosCAS)
 nrondas rondas clave inicial datosCAS = nrondas (rondas-1) clave configuracionesTextoYresiduo nuevoCAS
     where
         (configuracionesTextoYresiduo, nuevoCAS) = rondaTransformaciones datosCAS inicial clave
 
--- Función que reúne todas las rondas durante el cifrado
-cifrado :: [[Int]] -> ([[Int]], [Int], [[Int]], ClavePrivada)
-cifrado bloquesTextoClaro = cifrado' numeroRondas clave restoBloquesTextoPlano (acumuladoTextoCifrado, residuoCifrado, nuevoCAS)
+--Función que reúne todas las rondas durante el cifrado
+cifrado :: Mensaje -> ([[Int]], [Int], [[Int]], ClavePrivada)
+cifrado mensaje = cifrado' numeroRondas clave restoBloquesTextoPlano (acumuladoTextoCifrado, residuoCifrado, nuevoCAS)
     where 
         -- Inicialización de la clave privada
-        n1 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        n2 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        n3 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        semillaClave1 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        semillaClave2 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        semillaClave3 = unsafePerformIO creaNumeroAleatorioMedianteAC
-        semillaClave4 = unsafePerformIO creaNumeroAleatorioMedianteAC
+        n1 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        n2 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        n3 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        semillaClave1 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        semillaClave2 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        semillaClave3 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        semillaClave4 = unsafePerformIO obtieneNumeroAleatorioMedianteAC
         semillas = [n1,n2,n3]
         semillasClaves = [semillaClave1, semillaClave2, semillaClave3, semillaClave4]
         clave = inicializaClavePrivada semillasClaves
-        -- 
-        primeraConfiguracionACR = primero $ divideEnDosSubBloques $ kCAC clave
+        -- Fin de la inicialización de la clave privada
+        bloquesTextoClaro = preparaMensaje mensaje
+        primeraConfiguracionACR = primero $ divideEnDosSublistas $ kCAC clave
         inicial = [primeraConfiguracionACR, primero bloquesTextoClaro]
         listaAleatoriosCAS1 = primero (kCAS clave)
         listaAleatoriosCAS2 = ultimo (kCAS clave)
@@ -216,7 +218,7 @@ cifrado bloquesTextoClaro = cifrado' numeroRondas clave restoBloquesTextoPlano (
         residuoCifrado = ultimo datosCifrados
         restoBloquesTextoPlano = tail bloquesTextoClaro
 
--- Función auxiliar con la operación recursiva de la función de cifrado
+--Función auxiliar que realiza la operación recursiva de la función de cifrado
 cifrado' :: Int -> ClavePrivada -> [[Int]] -> ([[Int]], [Int], [[Int]]) -> ([[Int]], [Int], [[Int]], ClavePrivada)
 cifrado' rondas clave bloquesTextoClaro (acumuladoTextoCifrado, residuoCifrado, cas)
     | null bloquesTextoClaro = (acumuladoTextoCifrado, residualesXORClave, cifradoCASCompletoXORClave, clave)
@@ -237,6 +239,7 @@ cifrado' rondas clave bloquesTextoClaro (acumuladoTextoCifrado, residuoCifrado, 
         qnL: los bits se desplazan a la derecha 
         qnR: los bits se desplazan a la izquierda -}
 
+--Genera el autómata S inverso, con el número de desplazamiento de bits y las dos últimas configuraciones del CAS
 casInverso :: Int -> Int -> [[Int]] -> (Int, [[Int]])
 casInverso regla pasos datos = (numeroDespl, nuevoInicioCAS)
     where 
@@ -247,7 +250,7 @@ casInverso regla pasos datos = (numeroDespl, nuevoInicioCAS)
         numeroDespl = deListaBinarioANum ns                                                         -- ns es el número de celdas que se van a desplazar a izquierda o derecha
         nuevoInicioCAS = [automata !! (tamAutomata-2), automata !! (tamAutomata-1)]
 
--- Devuelve un par con dos listas de listas: el primer elemento está compuesto por la penúltima fila del AC y el segundo está compuesto por la última fila del AC
+--Devuelve un par con dos listas de listas: el primer elemento está compuesto por la penúltima fila del AC y el segundo está compuesto por la última fila del AC
 cacInverso :: Int -> [Int] -> [Int] -> ([[Int]], [[Int]])
 cacInverso regla qnC qn1C = (qnL1L, qnR1R) --izquierda y derecha
     where
@@ -255,19 +258,20 @@ cacInverso regla qnC qn1C = (qnL1L, qnR1R) --izquierda y derecha
         automata = generaACSO regla 3 numPasosCAC inicial
         qn1RL = automata !! (length automata - 1)
         qnLR = automata !! (length automata - 2)
-        subbloques2 = divideEnDosSubBloques qn1RL
-        subbloques1 = divideEnDosSubBloques qnLR
+        subbloques2 = divideEnDosSublistas qn1RL
+        subbloques1 = divideEnDosSublistas qnLR
         qnL1L = primero subbloques1 : [primero subbloques2]
         qnR1R = ultimo subbloques1 : [ultimo subbloques2]
 
+--Proceso global del autómata S (inverso)
 procesoAutomataSInverso :: Int -> [[Int]] -> (Int, [[Int]])
 procesoAutomataSInverso regla = casInverso regla numPasosCAS
 
--- Realiza el proceso de transformaciones del CAC, de forma inversa
+--Proceso global del autómata C (inverso)
 procesoAutomataCInverso :: Int -> [[Int]] -> ([[Int]], [[Int]])
 procesoAutomataCInverso regla confInicial = cacInverso regla (primero confInicial) (ultimo confInicial)
 
--- Realiza el proceso de transformaciones relacionadas con los autómatas izquierdo y derecho
+--Proceso global del autómata L y R (inverso)
 procesoAutomataLRInverso :: Int -> Int -> ([[Int]], [[Int]]) -> Int -> ([[Int]], [[Int]])
 procesoAutomataLRInverso reglaL reglaR (confIzquierda, confDerecha) desplazamientoBits = (configAutomataIzquierdo, configAutomataDerecho)
     where
@@ -278,7 +282,7 @@ procesoAutomataLRInverso reglaL reglaR (confIzquierda, confDerecha) desplazamien
         configAutomataIzquierdo = calr reglaL numPasosCALR qnL qn1R
         configAutomataDerecho = calr reglaR numPasosCALR qnR qn1L
 
--- Ronda de transformaciones de datos. Parecida a la del cifrado, pero a la inversa
+--Ronda individual de transformaciones de datos. Parecida a la del cifrado, pero a la inversa
 rondaInversaTransformaciones :: [[Int]] -> [[Int]] -> ClavePrivada -> ([[Int]], [[Int]])
 rondaInversaTransformaciones datosCAS inicial clave = ([textoDescifrado, datosAleatoriosIniciales], nuevoInicioCAS)
     where
@@ -286,19 +290,21 @@ rondaInversaTransformaciones datosCAS inicial clave = ([textoDescifrado, datosAl
         reglaCAL = deListaBinarioANum (kCAL clave)
         reglaCAR = deListaBinarioANum (kCAR clave)
         reglaCAC = deListaBinarioANum (kCAC clave)
-        (numeroDesplazamiento, nuevoInicioCAS) = procesoAutomataSInverso reglaCAS datosCAS         --CAMBIADA LAS REGLAS
-        (confIzquierda, confDerecha) = procesoAutomataCInverso reglaCAC inicial              -- CAMBIADA LA REGLA
+        (numeroDesplazamiento, nuevoInicioCAS) = procesoAutomataSInverso reglaCAS datosCAS         
+        (confIzquierda, confDerecha) = procesoAutomataCInverso reglaCAC inicial              
         (configAutomataIzquierdo, configAutomataDerecho) = procesoAutomataLRInverso reglaCAL reglaCAR (confIzquierda, confDerecha) numeroDesplazamiento
         textoDescifrado = ultimo configAutomataIzquierdo ++ ultimo configAutomataDerecho
         datosAleatoriosIniciales = primero configAutomataIzquierdo ++ primero configAutomataDerecho
 
+--n rondas de descifrado
 nrondasInverso :: Int -> ClavePrivada -> [[Int]] -> [[Int]] -> ([[Int]], [[Int]])
 nrondasInverso 0 _ inicial datosCAS = (inicial, datosCAS)
 nrondasInverso rondas clave inicial datosCAS = nrondasInverso (rondas-1) clave configuracionesTextoYresiduo nuevoCAS
     where
         (configuracionesTextoYresiduo, nuevoCAS) = rondaInversaTransformaciones datosCAS inicial clave
 
-descifrado :: ClavePrivada -> [[Int]] -> [[Int]] -> [Int] -> ([[Int]], [Int], [[Int]])
+--Proceso de descifrado completo (reúne todas las rondas)
+descifrado :: ClavePrivada -> [[Int]] -> [[Int]] -> [Int] -> (Mensaje, [Int], [[Int]])
 descifrado clave datosCAS textoCifrado datosResiduales = descifrado' numeroRondas clave restoTextoCifrado (textoDescifrado, residuoDescifrado, nuevoCAS)
     where
         bloquesTextoCifrado = reverse textoCifrado
@@ -310,9 +316,10 @@ descifrado clave datosCAS textoCifrado datosResiduales = descifrado' numeroRonda
         residuoDescifrado = primero datosDescifrados
         restoTextoCifrado = tail bloquesTextoCifrado
 
-descifrado' :: Int -> ClavePrivada -> [[Int]] -> ([[Int]], [Int], [[Int]]) -> ([[Int]], [Int], [[Int]])
+--Función auxiliar que realiza la operación recursiva de descifrado
+descifrado' :: Int -> ClavePrivada -> [[Int]] -> ([[Int]], [Int], [[Int]]) -> (Mensaje, [Int], [[Int]])
 descifrado' rondas clave bloquesTextoCifrado (acumuladoTextoDescifrado, residuoDescifrado, cas)
-    | null bloquesTextoCifrado = (reverse acumuladoTextoDescifrado, residuoDescifrado, cas)
+    | null bloquesTextoCifrado = (cambiaListasEnterosATexto (reverse acumuladoTextoDescifrado), residuoDescifrado, cas)
     | otherwise = descifrado' rondas clave (tail bloquesTextoCifrado) (acumuladoTextoDescifrado ++ [textoDescifrado], residuoDescifradoActualizado, nuevoCAS)
     where
         inicial = [primero bloquesTextoCifrado, residuoDescifrado]
@@ -324,8 +331,9 @@ descifrado' rondas clave bloquesTextoCifrado (acumuladoTextoDescifrado, residuoD
                                 Preparativos
     ----------------------------------------------------------------------}
 
-preparaTexto :: Mensaje -> [[Int]]
-preparaTexto mensaje
+--Prepara el texto del mensaje, es decir, lo codifica en 1 y 0 para poder realizar los cálculos necesarios para el cifrado y descifrado
+preparaMensaje :: Mensaje -> [[Int]]
+preparaMensaje mensaje
     | length listas8Bits <= 8 = if length ultimoByte < 64 then [ultimoByte'] else listas8Bytes
     | otherwise = if length ultimoByte < 64 then init listas8Bytes ++ [ultimoByte'] else listas8Bytes
     where
@@ -334,6 +342,7 @@ preparaTexto mensaje
         ultimoByte = ultimo listas8Bytes
         ultimoByte' = agregaCerosAlFinal ultimoByte
 
+--Transforma las listas de 1 y 0 al texto del mensaje
 cambiaListasEnterosATexto :: [[Int]] -> Mensaje
 cambiaListasEnterosATexto bloques = transformaEnteroEnTexto listaNumerosCaracteresSinCeros
     where
@@ -341,6 +350,7 @@ cambiaListasEnterosATexto bloques = transformaEnteroEnTexto listaNumerosCaracter
         listaNumerosCaracteres = map deListaBinarioANum divideEn8Bloques
         listaNumerosCaracteresSinCeros = reverse (dropWhile (==0) (reverse listaNumerosCaracteres))
 
+--Cambia una lista de 1 y 0 al texto del mensaje (para la versión simplificada)
 cambiaATexto :: [Int] -> Mensaje
 cambiaATexto bloque = transformaEnteroEnTexto listaNumerosCaracteresSinCeros
     where 
@@ -348,6 +358,7 @@ cambiaATexto bloque = transformaEnteroEnTexto listaNumerosCaracteresSinCeros
         listaNumerosCaracteres = map deListaBinarioANum divideEn8Bloques
         listaNumerosCaracteresSinCeros = reverse (dropWhile (==0) (reverse listaNumerosCaracteres))
 
+--Proceso de cifrado de las dos últimas configuraciones del CAS
 procesoCifradoCAS :: ClavePrivada -> [[Int]] -> [[Int]]
 procesoCifradoCAS clave datosCAS = cifradoCASCompletoXORClave
     where 
@@ -355,6 +366,7 @@ procesoCifradoCAS clave datosCAS = cifradoCASCompletoXORClave
         cifradoCAS2XORClave = xorl (ultimo $ kCAS clave) (ultimo datosCAS)
         cifradoCASCompletoXORClave = cifradoCAS1XORClave : [cifradoCAS2XORClave]
 
+--Proceso de descifrado de las dos últimas configuraciones del CAS
 procesoDescifradoDatosCAS :: ClavePrivada -> [[Int]] -> [[Int]]
 procesoDescifradoDatosCAS clave datosCAS = descifradoCASCompletoXORClave
     where
@@ -368,10 +380,9 @@ procesoDescifradoDatosCAS clave datosCAS = descifradoCASCompletoXORClave
     ----------------------------------------------------------------------}
 
 -- :set +s 
--- main
 
-main :: IO ()
-main = do
+mainCifradoBloque :: IO ()
+mainCifradoBloque = do
     imprime "--------------------------------------------------------------------------------------"
     imprime "Versión simplificada del cifrado de bloque basado en AC de segundo orden (vecindad 1):"
     imprime "--------------------------------------------------------------------------------------"
@@ -390,98 +401,92 @@ main = do
     main4
     imprime "--------------------------------------------------------------------------------------"
 
--- :set +s 
--- main
-
 main1 :: IO Mensaje
 main1 = do
     semilla <- now
     imprime "Introduce el texto que quieres cifrar: "
     texto <- getLine
-    let textoPreparado = concat $ preparaTexto texto
+    let textoPreparado = concat $ preparaMensaje texto
     let clave = datosInicialesAleatorios 9123
     let procesoCifrado = versionSimplificadaCifrado clave textoPreparado reglaAC 1 numPasos
     let textoCifrado = primero procesoCifrado
     let residuales = ultimo procesoCifrado
     let procesoDescifrado = versionSimplificadaDescifrado clave procesoCifrado reglaAC 1 numPasos
-    let textoDescifrado = primero procesoDescifrado
-    imprime ("  El texto codificado es: " ++ show textoPreparado)
-    imprime ("  El texto cifrado es: " ++ show textoCifrado)
-    imprime ("  El texto descifrado es: " ++ show textoDescifrado)
-    let iguales = textoPreparado == textoDescifrado
+    let textoDescifradoCodificado = primero procesoDescifrado
+    imprime ("  El texto codificado es: " ++ show (deListaBinarioANum textoPreparado))
+    imprime ("  El texto cifrado es: " ++ show (deListaBinarioANum textoCifrado))
+    imprime ("  El texto descifrado es: " ++ show (deListaBinarioANum textoDescifradoCodificado))
+    let iguales = textoPreparado == textoDescifradoCodificado
     if iguales then do
         imprime "   El texto se ha descifrado correctamente."
+        imprime (cambiaATexto textoDescifradoCodificado)
     else do
         imprime "   El texto NO se ha descifrado bien."
-    return (cambiaATexto textoDescifrado)
+    return (cambiaATexto textoDescifradoCodificado)
 
 main2 :: IO Mensaje
 main2 = do
     semilla <- now
     imprime "Introduce el texto que quieres cifrar: "
     texto <- getLine
-    let textoPreparado = concat $ preparaTexto texto
+    let textoPreparado = concat $ preparaMensaje texto
     let clave = datosInicialesAleatorios 9123
     let procesoCifrado = versionSimplificadaCifrado clave textoPreparado reglaAC 2 numPasos
     let textoCifrado = primero procesoCifrado
     let residuales = ultimo procesoCifrado
     let procesoDescifrado = versionSimplificadaDescifrado clave procesoCifrado reglaAC 2 numPasos
-    let textoDescifrado = primero procesoDescifrado
-    imprime ("  El texto codificado es: " ++ show textoPreparado)
-    imprime ("  El texto cifrado es: " ++ show textoCifrado)
-    imprime ("  El texto descifrado es: " ++ show textoDescifrado)
-    let iguales = textoPreparado == textoDescifrado
+    let textoDescifradoCodificado = primero procesoDescifrado
+    imprime ("  El texto codificado es: " ++ show (deListaBinarioANum textoPreparado))
+    imprime ("  El texto cifrado es: " ++ show (deListaBinarioANum textoCifrado))
+    imprime ("  El texto descifrado es: " ++ show (deListaBinarioANum textoDescifradoCodificado))
+    let iguales = textoPreparado == textoDescifradoCodificado
     if iguales then do
         imprime "   El texto se ha descifrado correctamente."
+        imprime (cambiaATexto textoDescifradoCodificado)
     else do
         imprime "   El texto NO se ha descifrado bien."
-    return (cambiaATexto textoDescifrado)
+    return (cambiaATexto textoDescifradoCodificado)
 
 main3 :: IO Mensaje
 main3 = do
     semilla <- now
     imprime "Introduce el texto que quieres cifrar: "
     texto <- getLine
-    let textoPreparado = concat $ preparaTexto texto
+    let textoPreparado = concat $ preparaMensaje texto
     let clave = datosInicialesAleatorios 9123
     let procesoCifrado = versionSimplificadaCifrado clave textoPreparado reglaAC 3 numPasos
     let textoCifrado = primero procesoCifrado
     let residuales = ultimo procesoCifrado
     let procesoDescifrado = versionSimplificadaDescifrado clave procesoCifrado reglaAC 3 numPasos
-    let textoDescifrado = primero procesoDescifrado
-    imprime ("  El texto codificado es: " ++ show textoPreparado)
-    imprime ("  El texto cifrado es: " ++ show textoCifrado)
-    imprime ("  El texto descifrado es: " ++ show textoDescifrado)
-    let iguales = textoPreparado == textoDescifrado
+    let textoDescifradoCodificado = primero procesoDescifrado
+    imprime ("  El texto codificado es: " ++ show (deListaBinarioANum textoPreparado))
+    imprime ("  El texto cifrado es: " ++ show (deListaBinarioANum textoCifrado))
+    imprime ("  El texto descifrado es: " ++ show (deListaBinarioANum textoDescifradoCodificado))
+    let iguales = textoPreparado == textoDescifradoCodificado
     if iguales then do
         imprime "   El texto se ha descifrado correctamente."
+        imprime (cambiaATexto textoDescifradoCodificado)
     else do
         imprime "   El texto NO se ha descifrado bien."
-    return (cambiaATexto textoDescifrado)
+    return (cambiaATexto textoDescifradoCodificado)
 
 main4 :: IO ()
 main4 = do
     putStrLn "  Introduzca el texto a cifrar:"
     texto <- getLine
-    let textoCodificado = preparaTexto texto
-    let procesoCifrado = cifrado textoCodificado
+    let procesoCifrado = cifrado texto
     let textoCifrado = fst'' procesoCifrado
     let datosResiduales = snd'' procesoCifrado
     let datosCASFinalesCifrado = trd'' procesoCifrado
     let clave = frt'' procesoCifrado
-    let textoDescifrado = descifrado clave datosCASFinalesCifrado textoCifrado datosResiduales
-    let textoDescifradoDescodificado = cambiaListasEnterosATexto (fst' textoDescifrado)
-    let controlTexto = textoCodificado == fst' textoDescifrado
+    let procesoDescifrado = descifrado clave datosCASFinalesCifrado textoCifrado datosResiduales
+    let textoDescifradoDescodificado = fst' procesoDescifrado
+    let controlProceso = texto == textoDescifradoDescodificado
     imprime ("  El texto es: " ++ texto)
-    -- imprime ("  El texto codificado es: " ++ show (map deListaBinarioANum textoCodificado))
-    -- imprime ("  La clave es: " ++ show (deListaBinarioANum (k clave)))
-    -- imprime ("  Datos iniciales 'aleatorios': " ++ show (deListaBinarioANum (kCAC clave)))
     imprime ("  Texto cifrado: " ++ show (map deListaBinarioANum textoCifrado))
-    -- imprime ("  Datos residuales finales: " ++ show (deListaBinarioANum datosResiduales))
-    -- imprime ("  Texto descifrado sin codificar: " ++ show (map deListaBinarioANum (fst' textoDescifrado)))
     imprime ("  Texto descifrado: " ++ show textoDescifradoDescodificado)
     putStr "    ¿El texto se ha descifrado correctamente? "
-    if controlTexto then do
+    if controlProceso then do
         imprime "Sí."
     else do
         imprime "No."

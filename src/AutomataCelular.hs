@@ -33,8 +33,8 @@ instance Comonad Cycle where
     -------------------------------------------------------------------------}
 
 --Transforma un ciclo en una lista 
-vista :: Cycle a -> [a]
-vista (Cycle n _ cen der) = Inf.take n (cen:::der)
+deCicloALista :: Cycle a -> [a]
+deCicloALista (Cycle n _ cen der) = Inf.take n (cen:::der)
 
 --Transforma una lista en un ciclo
 deListaACiclo :: [a] -> Cycle a
@@ -45,12 +45,15 @@ deListaACiclo lista = let cel:::der = Inf.cycle lista in Cycle (P.length lista) 
                       Creación de los autómatas celulares
     -------------------------------------------------------------------------}
 
+--Cálculo de una nueva celda a partir de una regla y un vecindario (celdas izquierda, central y derecha)
 regla :: (Integral a, Integral b) => a -> b -> b -> b -> a
 regla r izq cen der = r `div` (2^(4*izq + 2*cen + der)) `mod` 2
 
+--Aplica la regla a un vecindario para obtener una nueva celda
 ejecutaRegla :: (a1 -> a1 -> a1 -> a2) -> Cycle a1 -> a2
 ejecutaRegla regla (Cycle _ izq cen (der:::_)) = regla izq cen der
 
+-- Aplica la regla a todas las celdas del autómata
 ejecutaAC :: (Eq a, Integral a) => (a -> a -> a -> a) -> Cycle a -> InfList (Cycle a)
 ejecutaAC regla = Inf.iterate (=>> ejecutaRegla regla)    -- => extiende con los argumentos intercambiados
 
@@ -58,7 +61,7 @@ ejecutaAC regla = Inf.iterate (=>> ejecutaRegla regla)    -- => extiende con los
                               Inicialización del AC
     ------------------------------------------------------------------------------------}
 
--- Inicializa el AC (puede ser aleatorio o no)
+--Inicializa el AC con la configuración inicial (puede ser aleatoria o no)
 iniciaAC :: (Integral a, Num a) => Int -> [a] -> Cycle a
 iniciaAC numCels lista = deListaACiclo $ centro $ incluyeVecinosDer numCels lista
   where
@@ -69,20 +72,21 @@ iniciaAC numCels lista = deListaACiclo $ centro $ incluyeVecinosDer numCels list
                                   Generación del AC
     ------------------------------------------------------------------------------------}
 
+--Genera el autómata a partir de una regla y una configuración inicial, con n celdas
 generaAC :: (Integral a, Num a) => Int -> (a -> a -> a -> a) -> Cycle a -> [[a]]
 generaAC n regla inicial = Inf.take n automata
   where
-    automata = vista <$> ejecutaAC regla inicial
+    automata = deCicloALista <$> ejecutaAC regla inicial
 
     {-----------------------------------------------------------------------------------
                                     Muestra el AC
     ------------------------------------------------------------------------------------}
 
--- Solo para fines de comprobación para saber si el AC funciona bien
+--Muestra el autómata
 muestraAC :: (Eq a, Integral a, Num a) => Int -> (a -> a -> a -> a) -> Cycle a -> IO ()
 muestraAC n regla ini = P.mapM_ putStrLn $ Inf.take n automata
   where
-    automata = fmap muestra . vista <$> ejecutaAC regla ini   -- <$> - sinónimo infijo de fmap, que reemplaza todas las ubicaciones en la entrada por el mismo valor
+    automata = fmap muestra . deCicloALista <$> ejecutaAC regla ini   -- <$> - sinónimo infijo de fmap, que reemplaza todas las ubicaciones en la entrada por el mismo valor
     muestra 0 = ' '
     muestra 1 = '*'
 
@@ -91,13 +95,14 @@ muestraAC n regla ini = P.mapM_ putStrLn $ Inf.take n automata
                             Autómatas de segundo orden
     ------------------------------------------------------------------------------------}
 
-vista' :: CycleSO Int -> [Int]
-vista' (CycleSO nc pasado presente) = presente
+deCicloALista' :: CycleSO Int -> [Int]
+deCicloALista' (CycleSO nc pasado presente) = presente
 
--- Datos iniciales para el autómata de segundo orden
+--Configuraciones iniciales para el autómata de segundo orden
 inicializacion :: Int -> [Int] -> [Int] -> CycleSO Int
 inicializacion n lista1 lista2 = CycleSO {nCeldas=n, pasado=lista1, presente=lista2}
 
+--Cálculo de una nueva celda a partir de una regla y un vecindario (depende del radio de vecindad)
 reglaVecindad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int
 reglaVecindad reg radio izq3 izq2 izq1 cen der1 der2 der3
   | radio==2 = (reg `div` divisorR2) `mod` 2
@@ -107,6 +112,7 @@ reglaVecindad reg radio izq3 izq2 izq1 cen der1 der2 der3
     divisorR2 = 2^(16*izq2 + 8*izq1 + 4*cen + 2*der1 + der2)
     divisorR3 = 2^(64*izq3 + 32*izq2 + 16*izq1 + 8*cen + 4*der1 + 2*der2 + der3)
 
+--Aplica la regla a un conjunto de celdas para obtener nuevas celdas
 aplicaReglaSegundoOrden :: Int -> Int -> [Int] -> [Int] -> [Int]
 aplicaReglaSegundoOrden reg radioVecindad pasado presente
     | radioVecindad == 1 || radioVecindad == 2 || radioVecindad == 3 = primerasCeldas ++ celdasIntermedias ++ ultimasCeldas
@@ -117,13 +123,14 @@ aplicaReglaSegundoOrden reg radioVecindad pasado presente
       celdasIntermedias = [obtieneNuevaCeldaActual pasado presente i reg radioVecindad | i <- [radioVecindad..(tam-radioVecindad-1)]]
       ultimasCeldas = obtieneUltimasCeldas pasado presente (tam-1) reg radioVecindad
 
---Función auxiliar para obtener las nuevas celdas a partir de la regla (celdas intermedias):
+--Obtiene las nuevas celdas a partir de la regla (celdas intermedias):
 obtieneNuevaCeldaActual :: [Int] -> [Int] -> Int -> Int -> Int -> Int
-obtieneNuevaCeldaActual celdasAnteriores celdasActuales posicionCeldaActual reg radio = 
+obtieneNuevaCeldaActual celdasAnteriores celdasActuales posicionCeldaActual reg radio =
   obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
   where
     posiciones = [posicionCeldaActual-3,posicionCeldaActual-2,posicionCeldaActual-1,posicionCeldaActual,posicionCeldaActual+1,posicionCeldaActual+2,posicionCeldaActual+3]
 
+--Obtiene las primeras celdas (las de la frontera)
 obtienePrimerasCeldas :: [Int] -> [Int] -> Int -> Int -> Int -> [Int]
 obtienePrimerasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg radioVecindad
     | radioVecindad==1 = [primeraCelda]
@@ -138,7 +145,8 @@ obtienePrimerasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg ra
       primeraCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesPrim
       segundaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesSeg
       terceraCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesTerc
-      
+
+--Obtiene las últimas celdas (las de la frontera)
 obtieneUltimasCeldas :: [Int] -> [Int] -> Int -> Int -> Int -> [Int]
 obtieneUltimasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg radioVecindad
     | radioVecindad==1 = [ultimaCelda]
@@ -153,6 +161,7 @@ obtieneUltimasCeldas celdasAnteriores celdasActuales posicionCeldaActual reg rad
       penultimaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesPen
       antepenultimaCelda = obtieneCeldaPresente celdasAnteriores celdasActuales reg radioVecindad posicionesAnte
 
+--Obtiene nueva celda en el instante t
 obtieneCeldaPresente :: [Int] -> [Int] -> Int -> Int -> [Int] -> Int
 obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
     | radio == 1 = celdaFinalPresenteR1
@@ -183,35 +192,68 @@ obtieneCeldaPresente celdasAnteriores celdasActuales reg radio posiciones
       celdaFinalPresenteR2 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR2 - celdaAnterior | otherwise = celdaCentralPresenteR2
       celdaFinalPresenteR3 | esValorCeldaActualEnPasado1 = abs $ celdaCentralPresenteR3 - celdaAnterior | otherwise = celdaCentralPresenteR3
 
+--Aplica la regla de evolución a todo el autómata
 ejecutaACSO :: Int -> Int -> Int -> CycleSO Int -> [CycleSO Int]
 ejecutaACSO regla radio pasos ciclo
   | pasos==0 = []
   | otherwise = nuevoCiclo : ejecutaACSO regla radio (pasos-1) nuevoCiclo
-  where 
+  where
     anterior = pasado ciclo
     actual = presente ciclo
     actualizacion = aplicaReglaSegundoOrden regla radio anterior actual
     nuevoCiclo = CycleSO {pasado=actual, presente=actualizacion}
 
-
--- Genera el AC de segundo orden:
+--Genera el AC de segundo orden:
 generaACSO :: Int -> Int -> Int -> CycleSO Int -> [[Int]]
 generaACSO regla radio pasos inicial = [pasado inicial, presente inicial] ++ presentes
   where
-    presentes = vista' <$> ejecutaACSO regla radio pasos inicial
+    presentes = deCicloALista' <$> ejecutaACSO regla radio pasos inicial
 
--- Muestra el AC de segundo orden:
+--Muestra el AC de segundo orden:
 muestraACSO :: Int -> Int -> Int -> Int -> CycleSO Int -> IO ()
 muestraACSO n regla radio pasos inicial = P.mapM_ putStrLn $ L.take n automata
     where
-        automata = fmap muestra . vista' <$> ejecutaACSO regla radio pasos inicial
+        automata = fmap muestra . deCicloALista' <$> ejecutaACSO regla radio pasos inicial
         muestra 0 = ' '
         muestra 1 = '*'
 
 
 
+    {-------------------------------------------------------------------------
+                      Creación de números aleatorios
+                          y AC de segundo orden
+    -------------------------------------------------------------------------}
 
+--Crea y muestra un AC elemental con condiciones iniciales aleatorias
+creaYmuestraACelementalCondicionesAleatorias :: IO ()
+creaYmuestraACelementalCondicionesAleatorias = do
+  imprime "Introduce el número de celdas para el autómata celular: "
+  celdas <- getLine
+  imprime "Introduce la regla para el autómata celular: "
+  reg <- getLine
+  let numCeldas = read celdas :: Int
+  let r = read reg :: Int
+  gen <- newStdGen
+  let (semilla, nuevoGen) = randomR (1, 1000) gen :: (Int, StdGen)
+  let listaAleatorios = generaAleatoriosL semilla
+  let configuracionInicial = L.concat (cambioABase2Lista listaAleatorios)
+  let inicia = iniciaAC numCeldas configuracionInicial
+  muestraAC numCeldas (regla r) inicia
 
+--Crea y muestra un AC elemental con condiciones iniciales fijas (una sola celda activa en el centro)
+creaYmuestraACelementalCondicionesFijas :: IO ()
+creaYmuestraACelementalCondicionesFijas = do
+  imprime "Introduce el número de celdas para el autómata celular: "
+  celdas <- getLine
+  imprime "Introduce la regla para el autómata celular: "
+  reg <- getLine
+  let numCeldas = read celdas :: Int
+  let r = read reg :: Int
+  let configuracionInicial = [1]
+  let inicia = iniciaAC numCeldas configuracionInicial
+  muestraAC numCeldas (regla r) inicia
+
+--Obtiene un número primo aleatorio a partir de un autómata celular elemental
 obtienePrimoAleatorio :: IO Integer
 obtienePrimoAleatorio = do
     gen <- newStdGen
@@ -226,7 +268,7 @@ obtienePrimoAleatorio = do
     let inicia = iniciaAC numCeldas listaAleatoriosBase2
     let automata = generaAC numCeldas (regla 30) inicia
     let indices = [1..genericLength automata-1]
-    let listaCentros = L.take 14 [elementoCentral f | f<-automata]
+    let listaCentros = L.take 17 [elementoCentral f | f<-automata]
     let num = deListaBinarioANum listaCentros
     let control = esPrimo (toInteger num)
     semillaPrimos <- now
@@ -237,13 +279,13 @@ obtienePrimoAleatorio = do
           | otherwise = obtienePrimoCercanoSup num
     return (toInteger p)
 
-creaNumeroAleatorioMedianteAC :: IO Int
-creaNumeroAleatorioMedianteAC = do
+--Obtiene un número aleatorio mediante un autómata celular elemental
+obtieneNumeroAleatorioMedianteAC :: IO Int
+obtieneNumeroAleatorioMedianteAC = do
   gen <- newStdGen
   let (semilla, _) = randomR (30, 5000) gen :: (Int, StdGen)
-  --semilla <- now
   let listaAleatorios = generaAleatoriosL semilla
-      listaAleatoriosBase2 = L.concat (cambioABase2Lista listaAleatorios)            
+      listaAleatoriosBase2 = L.concat (cambioABase2Lista listaAleatorios)
       inicia = iniciaAC numCeldas listaAleatoriosBase2
       automata = generaAC numCeldas (regla 30) inicia
       indices = [1..genericLength automata-1]
@@ -251,6 +293,7 @@ creaNumeroAleatorioMedianteAC = do
       num = deListaBinarioANum listaCentros
   return num
 
+--Crea y muestra un autómata de segundo orden de radio 2
 creaACSegundoOrdenRadio2 :: IO ()
 creaACSegundoOrdenRadio2 = do
   gen <- newStdGen
@@ -267,8 +310,12 @@ creaACSegundoOrdenRadio2 = do
   muestraACSO 50 reglaAC 2 numPasos inicio
   imprime "Autómata celular reversible de radio=2 (hacia atrás):"
   muestraACSO 50 reglaAC 2 numPasos confACReversible
+  if automata == reverse automataR then do
+    imprime "El autómata reversible es igual que el original si le damos la vuelta."
+  else do
+    imprime "El autómata reversible no se ha construido correctamente."
 
-
+--Crea y muestra un autómata de segundo orden de radio 3
 creaACSegundoOrdenRadio3 :: IO ()
 creaACSegundoOrdenRadio3 = do
   gen <- newStdGen
@@ -285,3 +332,7 @@ creaACSegundoOrdenRadio3 = do
   muestraACSO 50 reglaAC 3 numPasos inicio
   imprime "Autómata celular reversible de radio=3 (hacia atrás):"
   muestraACSO 50 reglaAC 3 numPasos confACReversible
+  if automata == reverse automataR then do
+    imprime "El autómata reversible es igual que el original si le damos la vuelta."
+  else do
+    imprime "El autómata reversible no se ha construido correctamente."

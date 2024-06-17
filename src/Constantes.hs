@@ -54,16 +54,16 @@ reglaAC :: Int
 reglaAC = 30
 
 numPasosCALR :: Int
-numPasosCALR = 19 --4
+numPasosCALR = 19
 
-numPasosCAC :: Int 
-numPasosCAC = 17 --4
+numPasosCAC :: Int
+numPasosCAC = 17
 
 numPasosCAS :: Int
 numPasosCAS = 5     
 
 numeroRondas :: Int
-numeroRondas = 2
+numeroRondas = 15
 
 numBits :: Int
 numBits = 64

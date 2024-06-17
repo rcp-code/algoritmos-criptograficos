@@ -11,42 +11,47 @@ import Tipos
 import UtilIO
 import UtilGeneral
 import Data.List
-
-
+import GHC.IO (unsafePerformIO)
 
     {----------------------------------------------------------------------
                                 Preparativos
     ----------------------------------------------------------------------}
 
-preparaTextoParaElCifrado :: Mensaje -> ([Int], Int)
-preparaTextoParaElCifrado mensaje = (mensajeCodificado, length mensajeCodificado)
+--Codifica el mensaje y además obtiene el tamaño del bloque
+preparaTextoParaCifrado :: Mensaje -> ([Int], Int)
+preparaTextoParaCifrado mensaje = (mensajeCodificado, length mensajeCodificado)
     where
         mensajeCodificado = codificaEnBinario mensaje
 
-codificaClave :: String -> [Int]
-codificaClave = codificaEnBinario
-
-configuracionInicialAutomata :: [Int] -> Int -> [Int]
-configuracionInicialAutomata claveCodificada tamTexto
+--Configuración inicial del autómata a partir de la clave secreta (es necesario el tamaño del mensaje para que el tamaño de la clave sea el mismo)
+configuracionInicialAutomata :: String -> Int -> [Int]
+configuracionInicialAutomata claveSecreta tamTexto
     | length claveCodificada /= tamTexto = agregaCerosAIzquierda claveCodificada tamTexto
     | otherwise = claveCodificada
+    where 
+        claveCodificada = codificaEnBinario claveSecreta
 
     {----------------------------------------------------------------------
                         Algoritmos cifrado y descifrado
     ----------------------------------------------------------------------}
 
-cifradoWolfram :: [Int] -> Int -> [Int] -> ([Int], [Int])
-cifradoWolfram configuracionInicial semilla mensajeCodificado = (xorl clave mensajeCodificado, clave)
+--Proceso del cifrado Wolfram
+cifradoWolfram :: String -> Mensaje -> ([Int], [Int])
+cifradoWolfram claveSecreta mensaje = (xorl clave msgPreparado, clave)
     where
+        semilla = unsafePerformIO obtieneNumeroAleatorioMedianteAC
+        (msgPreparado, tamTexto) = preparaTextoParaCifrado mensaje
+        configuracionInicial = configuracionInicialAutomata claveSecreta tamTexto
         inicia = iniciaAC maxCeldas configuracionInicial
         automata = generaAC evolucionCifradoWolfram (regla 30) inicia
         tamAutomata = length automata
         numAleatorio = generaAleatorio semilla 0 tamAutomata
-        numAleatorioComienzo = tamAutomata - length mensajeCodificado
+        numAleatorioComienzo = tamAutomata - length msgPreparado
         filasAutomata = [c | (c,i)<-zip automata [0..genericLength automata-1], i `elem` [numAleatorioComienzo..genericLength automata-1]]
         obtieneCeldaCentral a = head [x | (x,i) <- zip a [0..(length a - 1)], i == div (length a) 2]
         clave = [obtieneCeldaCentral x | x<-filasAutomata]
 
+--Proceso del descifrado Wolfram
 descifradoWolfram :: [Int] -> [Int] -> Mensaje
 descifradoWolfram mensajeCifrado clave = descodifica descifradoXOR
     where
@@ -56,33 +61,19 @@ descifradoWolfram mensajeCifrado clave = descodifica descifradoXOR
                             Unión de los procesos
     ----------------------------------------------------------------------}
 
-cifradoWolframIO :: IO Mensaje
-cifradoWolframIO = do
-    semilla <- now
+mainWolfram :: IO()
+mainWolfram = do
     putStrLn "Introduzca el texto a cifrar:"
-    texto <- getLine
-    let textoTransformado = codificaEnBinario texto
-    let tamTextoTransformado = length textoTransformado
-    let claveSecreta = "MIRANDA"
-    let claveCodificada = codificaEnBinario claveSecreta
-    let confInicial | length claveCodificada /= tamTextoTransformado = agregaCerosAIzquierda claveCodificada tamTextoTransformado
-                    | otherwise = claveCodificada
-    let inicia = iniciaAC maxCeldas confInicial
-    let automata = generaAC evolucionCifradoWolfram (regla 30) inicia
-    let tamAutomata = length automata
-    let numAleatorio = generaAleatorio semilla 0 tamAutomata
-    let numAleatorioComienzo = tamAutomata - tamTextoTransformado
-    let indices = [numAleatorioComienzo..genericLength automata-1]
-    let filasAutomata = [c | (c,i)<-zip automata [0..genericLength automata-1], i `elem` indices]
-    let clave = [obtieneCeldaCentral x | x<-filasAutomata]
-    let operacionXOR = xorl clave textoTransformado
-    let operacionXOR' = xorl clave operacionXOR
-    let textoDescifrado = descodifica operacionXOR'
-    let control = texto == textoDescifrado
+    mensaje <- getLine
+    putStrLn "Introduzca una clave secreta para el cifrado:"
+    claveSecreta <- getLine
+    let procesoCifrado = cifradoWolfram claveSecreta mensaje
+    let mensajeDescifrado = uncurry descifradoWolfram procesoCifrado
+    let control = mensaje == mensajeDescifrado
     if control then do
-        imprime "El texto se ha cifrado y descifrado correctamente."
+        imprime "El mensaje se ha cifrado y descifrado correctamente."
     else do
-        imprime "Algo ha fallado en el proceso de cifrado/descifrado."
-    return textoDescifrado
-    where
-        obtieneCeldaCentral a = head [x | (x,i) <- zip a [0..(length a - 1)], i == div (length a) 2]
+        imprime "Algo ha fallado en el proceso de cifrado/descifrado de Wolfram."
+    imprime ("Texto original: " ++ show mensaje)
+    imprime ("Texto descifrado: " ++ show mensajeDescifrado)
+

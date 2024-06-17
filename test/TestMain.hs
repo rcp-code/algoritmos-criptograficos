@@ -9,7 +9,7 @@ import TestsPropiedades
 main :: IO ()
 main = do
     imprime ""
-    imprime "Bienvenido/a al entorno de pruebas..."  
+    imprime "           Bienvenido/a al entorno de pruebas..."  
     imprime ""
     imprime "-------------Propiedades generales-------------"
     imprime ""
@@ -19,7 +19,7 @@ main = do
     imprime ""
     imprime "Propiedades de número a lista de dígitos (y viceversa): "
     imprime ""
-    quickCheck prop_numeros_digitos
+    quickCheck prop_numeroAdigitos
     imprime ""
     imprime "Propiedades de codificación y descodificación en binario: "
     imprime ""
@@ -38,6 +38,12 @@ main = do
     imprime "Propiedad que comprueba que el mensaje original es el mismo al descifrar el texto cifrado."
     imprime ""
     quickCheck prop_cifradoRSA_descifradoRSA
+    imprime ""
+    imprime "-------------Propiedades relativas al cifrado de Wolfram-------------"
+    imprime ""
+    imprime "Propiedad de clave privada: "
+    imprime ""
+    quickCheck prop_cifrado_descifrado_Wolfram
     imprime ""
     imprime "-------------Propiedades relativas a autómatas celulares-------------"
     imprime ""
