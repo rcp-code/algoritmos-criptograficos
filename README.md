@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Este proyecto no solo ha sido motivado por mi TFG (Trabajo de Fin de Grado), sino también por la curiosidad que me genera el tema de los autómatas celulares (AC) y la criptografía. En concreto se han desarrollado en Haskell algunos algoritmos de interés en los que se usarán autómatas celulares tanto para la generación de números pseudoaleatorios necesarios para RSA como para los procesos de cifrado y descifrado en el Cifrado de Wolfram y en el Cifrado de bloque basado en AC de segundo orden. La idea general es ahondar en el uso de los autómatas celulares dentro del ámbito de la Criptografía y comprobar si son una buena alternativa a otras que no los usan.
+Este proyecto no solo ha sido motivado por la realización del TFG (Trabajo de Fin de Grado), sino también por la curiosidad que me genera el tema de los **autómatas celulares** (AC) y la **criptografía**. En concreto se han desarrollado en **Haskell** algunos algoritmos de interés en los que se usarán autómatas celulares tanto para la generación de números pseudoaleatorios necesarios para *RSA* como para los procesos de cifrado y descifrado en el *Cifrado de Wolfram* y en el *Cifrado de bloque basado en AC de segundo orden*. La idea general es ahondar en el uso de los autómatas celulares dentro del ámbito de la Criptografía y comprobar si son una buena alternativa a otras que no los usan.
 
 
 ## Instalación
